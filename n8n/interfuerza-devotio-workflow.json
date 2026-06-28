@@ -1,0 +1,406 @@
+{
+  "name": "InterFuerza × Devotio Rewards — Cashback Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/2 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Cada 2 Minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/sync_state?key=eq.last_processed_at",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-last-sync",
+      "name": "Leer Last Processed At",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.INTERFUERZA_API_URL }}/api/v1/invoices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.INTERFUERZA_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "date_from", "value": "={{ $json[0].value }}" },
+            { "name": "limit", "value": "50" },
+            { "name": "order", "value": "date asc" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-invoices",
+      "name": "Obtener Facturas InterFuerza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "has-data",
+              "leftValue": "={{ $json.data ? $json.data.length : ($json.length || 0) }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      },
+      "id": "node-if-invoices",
+      "name": "¿Hay Facturas Nuevas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/transactions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "invoice_id" },
+            { "name": "created_at", "value": "=gte.{{ new Date(Date.now() - 24*60*60*1000).toISOString() }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-processed",
+      "name": "Obtener IDs Procesados (Dedup)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "mode": "removeDuplicates",
+        "dedupe": {
+          "dedupeOn": ["invoice_id"]
+        }
+      },
+      "id": "node-remove-dupes",
+      "name": "Filtrar Duplicados",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DEVOTIO_API_URL }}/customers/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.DEVOTIO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "={{ $json.Telefono_1 || $json.Email || $json.telefono || $json.email }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-search-customer",
+      "name": "Buscar Cliente en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "customer-found",
+              "leftValue": "={{ $json.customer?.id || $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "isNotEmpty" }
+            }
+          ]
+        }
+      },
+      "id": "node-if-customer",
+      "name": "¿Cliente Encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DEVOTIO_API_URL }}/cashback",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.DEVOTIO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "customer_id", "value": "={{ $('Buscar Cliente en Devotio').item.json.customer?.id || $('Buscar Cliente en Devotio').item.json.id }}" },
+            { "name": "amount", "value": "={{ $('Filtrar Duplicados').item.json.Total || $('Filtrar Duplicados').item.json.total }}" },
+            { "name": "percentage", "value": "={{ parseFloat($env.CASHBACK_PERCENTAGE || '5') }}" },
+            { "name": "cashback_amount", "value": "={{ (($('Filtrar Duplicados').item.json.Total || $('Filtrar Duplicados').item.json.total) * parseFloat($env.CASHBACK_PERCENTAGE || '5') / 100).toFixed(2) }}" },
+            { "name": "invoice_ref", "value": "={{ $('Filtrar Duplicados').item.json.id }}" },
+            { "name": "branch", "value": "={{ $('Filtrar Duplicados').item.json.Bodega || $('Filtrar Duplicados').item.json.bodega }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-register-cashback",
+      "name": "Registrar Cashback en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/transactions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "invoice_id", "value": "={{ $('Filtrar Duplicados').item.json.id }}" },
+            { "name": "customer_name", "value": "={{ $('Buscar Cliente en Devotio').item.json.customer?.name || $('Buscar Cliente en Devotio').item.json.name || $('Filtrar Duplicados').item.json.Cliente }}" },
+            { "name": "customer_phone", "value": "={{ $('Filtrar Duplicados').item.json.Telefono_1 || $('Filtrar Duplicados').item.json.telefono }}" },
+            { "name": "customer_email", "value": "={{ $('Filtrar Duplicados').item.json.Email || $('Filtrar Duplicados').item.json.email }}" },
+            { "name": "amount", "value": "={{ $('Filtrar Duplicados').item.json.Total || $('Filtrar Duplicados').item.json.total }}" },
+            { "name": "cashback_amount", "value": "={{ (($('Filtrar Duplicados').item.json.Total || $('Filtrar Duplicados').item.json.total) * parseFloat($env.CASHBACK_PERCENTAGE || '5') / 100).toFixed(2) }}" },
+            { "name": "cashback_pct", "value": "={{ parseFloat($env.CASHBACK_PERCENTAGE || '5') }}" },
+            { "name": "branch", "value": "={{ $('Filtrar Duplicados').item.json.Bodega || $('Filtrar Duplicados').item.json.bodega }}" },
+            { "name": "transaction_date", "value": "={{ $('Filtrar Duplicados').item.json.Date || $('Filtrar Duplicados').item.json.date }}" },
+            { "name": "status", "value": "processed" },
+            { "name": "devotio_customer_id", "value": "={{ $('Buscar Cliente en Devotio').item.json.customer?.id || $('Buscar Cliente en Devotio').item.json.id }}" },
+            { "name": "devotio_transaction_id", "value": "={{ $json.transaction_id || $json.id }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-insert-processed",
+      "name": "Guardar en Supabase (Procesado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/transactions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "invoice_id", "value": "={{ $('Filtrar Duplicados').item.json.id }}" },
+            { "name": "customer_name", "value": "={{ $('Filtrar Duplicados').item.json.Cliente || $('Filtrar Duplicados').item.json.cliente }}" },
+            { "name": "customer_phone", "value": "={{ $('Filtrar Duplicados').item.json.Telefono_1 || $('Filtrar Duplicados').item.json.telefono }}" },
+            { "name": "customer_email", "value": "={{ $('Filtrar Duplicados').item.json.Email || $('Filtrar Duplicados').item.json.email }}" },
+            { "name": "amount", "value": "={{ $('Filtrar Duplicados').item.json.Total || $('Filtrar Duplicados').item.json.total }}" },
+            { "name": "branch", "value": "={{ $('Filtrar Duplicados').item.json.Bodega || $('Filtrar Duplicados').item.json.bodega }}" },
+            { "name": "transaction_date", "value": "={{ $('Filtrar Duplicados').item.json.Date || $('Filtrar Duplicados').item.json.date }}" },
+            { "name": "status", "value": "pending" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-insert-pending",
+      "name": "Guardar en Supabase (Pendiente)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 340]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/sync_state?key=eq.last_processed_at",
+        "method": "PATCH",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "value", "value": "={{ new Date().toISOString() }}" },
+            { "name": "updated_at", "value": "={{ new Date().toISOString() }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-update-sync",
+      "name": "Actualizar last_processed_at",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 220]
+    },
+    {
+      "parameters": {
+        "amount": 500,
+        "unit": "milliseconds"
+      },
+      "id": "node-wait",
+      "name": "Rate Limit (500ms)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 440],
+      "webhookId": "rate-limit-wait"
+    }
+  ],
+  "connections": {
+    "Cada 2 Minutos": {
+      "main": [
+        [{ "node": "Leer Last Processed At", "type": "main", "index": 0 }]
+      ]
+    },
+    "Leer Last Processed At": {
+      "main": [
+        [{ "node": "Obtener Facturas InterFuerza", "type": "main", "index": 0 }]
+      ]
+    },
+    "Obtener Facturas InterFuerza": {
+      "main": [
+        [{ "node": "¿Hay Facturas Nuevas?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Hay Facturas Nuevas?": {
+      "main": [
+        [{ "node": "Obtener IDs Procesados (Dedup)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Obtener IDs Procesados (Dedup)": {
+      "main": [
+        [{ "node": "Filtrar Duplicados", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filtrar Duplicados": {
+      "main": [
+        [{ "node": "Buscar Cliente en Devotio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Cliente en Devotio": {
+      "main": [
+        [{ "node": "¿Cliente Encontrado?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Cliente Encontrado?": {
+      "main": [
+        [{ "node": "Registrar Cashback en Devotio", "type": "main", "index": 0 }],
+        [{ "node": "Guardar en Supabase (Pendiente)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Cashback en Devotio": {
+      "main": [
+        [{ "node": "Guardar en Supabase (Procesado)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar en Supabase (Procesado)": {
+      "main": [
+        [{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar en Supabase (Pendiente)": {
+      "main": [
+        [{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "interfuerza-devotio-v1"
+  },
+  "pinData": {},
+  "versionId": "1",
+  "triggerCount": 1,
+  "tags": [
+    { "id": "tag-devotio", "name": "devotio-rewards" },
+    { "id": "tag-interfuerza", "name": "interfuerza" }
+  ]
+}
