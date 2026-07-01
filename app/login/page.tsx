@@ -36,13 +36,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="w-full max-w-md px-8">
         <div className="mb-10 text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="text-white font-semibold text-lg">Devotio Rewards</span>
+          <div className="flex justify-center mb-5">
+            <img
+              src="/devotio-logo-dark.svg"
+              alt="Devotio Rewards"
+              width={120}
+              height={111}
+              className="w-[120px]"
+            />
           </div>
           <h1 className="text-2xl font-bold text-white">Panel InterFuerza</h1>
           <p className="text-gray-400 text-sm mt-1">Ingresá con tus credenciales</p>
