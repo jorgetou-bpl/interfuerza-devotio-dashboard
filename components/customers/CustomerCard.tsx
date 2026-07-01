@@ -9,6 +9,7 @@ interface Customer {
   name: string
   phone: string
   email: string
+  cardId: string
   balance: number
   points: number
 }
@@ -52,15 +53,14 @@ export default function CustomerCard({ customer, onRedemptionComplete }: Custome
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 divide-x divide-gray-800">
-          <div className="px-5 py-4">
-            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Balance disponible</p>
-            <p className="text-3xl font-bold text-emerald-400">${currentBalance.toFixed(2)}</p>
-          </div>
-          <div className="px-5 py-4">
-            <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Puntos acumulados</p>
-            <p className="text-3xl font-bold text-white">{customer.points.toLocaleString()}</p>
-          </div>
+        <div className="px-5 py-4">
+          <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Balance disponible</p>
+          <p className="text-3xl font-bold text-emerald-400">
+            ₡{currentBalance.toLocaleString('es-CR')}
+          </p>
+          {currentBalance <= 0 && (
+            <p className="text-gray-600 text-xs mt-1">Sin saldo disponible para canjear</p>
+          )}
         </div>
       </div>
 

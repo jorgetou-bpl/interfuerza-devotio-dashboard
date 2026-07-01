@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -18,6 +18,7 @@ interface Customer {
   name: string
   phone: string
   email: string
+  cardId: string
   balance: number
 }
 
@@ -37,6 +38,11 @@ export default function RedemptionModal({
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Pre-fill with full balance when modal opens
+  useEffect(() => {
+    if (open) setAmount(String(customer.balance))
+  }, [open, customer.balance])
+
   const parsedAmount = parseFloat(amount)
   const isValid = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= customer.balance
 
@@ -48,6 +54,7 @@ export default function RedemptionModal({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        cardId: customer.cardId,
         customerId: customer.id,
         customerName: customer.name,
         customerPhone: customer.phone,
@@ -64,10 +71,12 @@ export default function RedemptionModal({
       return
     }
 
-    toast.success(`Redención de $${parsedAmount.toFixed(2)} confirmada para ${customer.name}`)
+    toast.success(`✓ Canje de ₡${parsedAmount.toLocaleString('es-CR')} confirmado para ${customer.name}`)
     setAmount('')
     onSuccess(data.newBalance ?? customer.balance - parsedAmount)
   }
+
+  const remaining = isValid ? customer.balance - parsedAmount : null
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
@@ -76,35 +85,46 @@ export default function RedemptionModal({
           <DialogTitle className="text-white">Redimir Cashback</DialogTitle>
           <DialogDescription className="text-gray-400">
             {customer.name} — Balance disponible:{' '}
-            <span className="text-emerald-400 font-semibold">${customer.balance.toFixed(2)}</span>
+            <span className="text-emerald-400 font-semibold">
+              ₡{customer.balance.toLocaleString('es-CR')}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="amount" className="text-gray-300 text-sm">
-              Monto a redimir
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="amount" className="text-gray-300 text-sm">
+                Monto a redimir
+              </Label>
+              <button
+                type="button"
+                onClick={() => setAmount(String(customer.balance))}
+                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                Usar todo el balance
+              </button>
+            </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₡</span>
               <Input
                 id="amount"
                 type="number"
-                min="0.01"
+                min="1"
                 max={customer.balance}
-                step="0.01"
+                step="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
+                placeholder="0"
                 className="pl-7 bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-violet-500"
               />
             </div>
             {amount && !isNaN(parsedAmount) && parsedAmount > customer.balance && (
               <p className="text-red-400 text-xs">El monto supera el balance disponible.</p>
             )}
-            {amount && !isNaN(parsedAmount) && parsedAmount <= customer.balance && parsedAmount > 0 && (
+            {remaining !== null && remaining >= 0 && (
               <p className="text-gray-500 text-xs">
-                Balance restante: ${(customer.balance - parsedAmount).toFixed(2)}
+                Balance restante: ₡{remaining.toLocaleString('es-CR')}
               </p>
             )}
           </div>
@@ -123,7 +143,7 @@ export default function RedemptionModal({
               disabled={!isValid || loading}
               className="flex-1 bg-violet-600 hover:bg-violet-500 text-white"
             >
-              {loading ? 'Procesando...' : 'Confirmar redención'}
+              {loading ? 'Procesando...' : `Confirmar ₡${isValid ? parsedAmount.toLocaleString('es-CR') : '0'}`}
             </Button>
           </div>
         </div>

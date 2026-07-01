@@ -10,6 +10,7 @@ interface Customer {
   name: string
   phone: string
   email: string
+  cardId: string
   balance: number
   points: number
 }

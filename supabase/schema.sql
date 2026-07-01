@@ -97,3 +97,7 @@ CREATE POLICY "authenticated_read_sync_state"
 -- Ejecutar en SQL Editor:
 ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
 ALTER PUBLICATION supabase_realtime ADD TABLE redemptions;
+
+-- Migration: add devotio_card_id columns
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS devotio_card_id TEXT;
+ALTER TABLE redemptions ADD COLUMN IF NOT EXISTS devotio_card_id TEXT;

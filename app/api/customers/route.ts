@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchCustomer } from '@/lib/devotio'
+import { searchCustomer, getCustomerCard } from '@/lib/devotio'
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')
@@ -8,11 +8,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Query demasiado corta' }, { status: 400 })
   }
 
-  const customer = await searchCustomer(q.trim())
+  const devotioCustomer = await searchCustomer(q.trim())
 
-  if (!customer) {
+  if (!devotioCustomer) {
     return NextResponse.json({ customer: null }, { status: 200 })
   }
 
-  return NextResponse.json({ customer })
+  const card = await getCustomerCard(devotioCustomer.id)
+
+  if (!card) {
+    return NextResponse.json({ customer: null }, { status: 200 })
+  }
+
+  return NextResponse.json({
+    customer: {
+      id: devotioCustomer.id,
+      name: `${devotioCustomer.firstName} ${devotioCustomer.surname}`.trim(),
+      phone: devotioCustomer.phone,
+      email: devotioCustomer.email,
+      cardId: card.id,
+      balance: card.points,
+      points: card.points,
+    },
+  })
 }

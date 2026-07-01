@@ -8,65 +8,85 @@ const headers = () => ({
 
 export interface DevotioCustomer {
   id: string
-  name: string
+  firstName: string
+  surname: string
   phone: string
   email: string
-  balance: number
+  externalUserId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DevotioCard {
+  id: string
   points: number
-  joined_at: string
 }
 
-export interface DevotioRedemptionResult {
-  redemption_id: string
-  customer_id: string
-  amount_redeemed: number
-  new_balance: number
-  status: 'confirmed' | 'failed'
-}
-
-export async function searchCustomer(
-  query: string
-): Promise<DevotioCustomer | null> {
-  const params = new URLSearchParams({ q: query })
-  const res = await fetch(`${BASE_URL}/customers/search?${params}`, {
+export async function searchCustomer(query: string): Promise<DevotioCustomer | null> {
+  const field = query.includes('@') ? 'email' : 'phone'
+  const params = new URLSearchParams({ [field]: query })
+  const res = await fetch(`${BASE_URL}/customers?${params}`, {
     headers: headers(),
     cache: 'no-store',
   })
   if (!res.ok) return null
   const data = await res.json()
-  return data.customer ?? data ?? null
+  if (Array.isArray(data.data) && data.data.length > 0) return data.data[0]
+  return null
 }
 
-export async function getCustomerBalance(
-  customerId: string
-): Promise<{ balance: number; points: number } | null> {
-  const res = await fetch(`${BASE_URL}/customers/${customerId}/balance`, {
+export async function getCustomerCard(customerId: string): Promise<DevotioCard | null> {
+  const params = new URLSearchParams({ customerId })
+  const res = await fetch(`${BASE_URL}/cards?${params}`, {
     headers: headers(),
     cache: 'no-store',
   })
   if (!res.ok) return null
+  const data = await res.json()
+  if (Array.isArray(data.data) && data.data.length > 0) return data.data[0]
+  return null
+}
+
+export async function getCard(cardId: string): Promise<DevotioCard | null> {
+  const res = await fetch(`${BASE_URL}/cards/${cardId}`, {
+    headers: headers(),
+    cache: 'no-store',
+  })
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.data ?? null
+}
+
+export async function addPoints(
+  cardId: string,
+  points: number,
+  comment: string
+): Promise<unknown> {
+  const res = await fetch(`${BASE_URL}/cards/${cardId}/add-point`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ points, purchaseSum: points, comment }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { message?: string }).message ?? `Devotio API error: ${res.status}`)
+  }
   return res.json()
 }
 
-export async function redeemCashback(
-  customerId: string,
-  amount: number,
-  initiatedBy: string
-): Promise<DevotioRedemptionResult> {
-  const res = await fetch(`${BASE_URL}/redemptions`, {
+export async function subtractPoints(
+  cardId: string,
+  points: number,
+  comment: string
+): Promise<unknown> {
+  const res = await fetch(`${BASE_URL}/cards/${cardId}/subtract-point`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({
-      customer_id: customerId,
-      amount,
-      initiated_by: initiatedBy,
-    }),
+    body: JSON.stringify({ points, purchaseSum: points, comment }),
   })
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? `Devotio API error: ${res.status}`)
+    throw new Error((err as { message?: string }).message ?? `Devotio API error: ${res.status}`)
   }
-
   return res.json()
 }

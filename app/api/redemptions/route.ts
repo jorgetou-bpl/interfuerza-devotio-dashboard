@@ -1,43 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { redeemCashback } from '@/lib/devotio'
+import { subtractPoints, getCard } from '@/lib/devotio'
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { customerId, customerName, customerPhone, customerEmail, amount } = body
+  const { cardId, customerId, customerName, customerPhone, customerEmail, amount } = body
 
-  if (!customerId || !amount || typeof amount !== 'number' || amount <= 0) {
+  if (!cardId || !amount || typeof amount !== 'number' || amount <= 0) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 
   const supabase = await createServiceClient()
-
   const { data: { user } } = await supabase.auth.getUser()
 
-  let devotioResult
   try {
-    devotioResult = await redeemCashback(customerId, amount, user?.email ?? 'dashboard')
+    await subtractPoints(cardId, amount, 'Canje cashback')
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error en Devotio API'
     return NextResponse.json({ error: message }, { status: 502 })
   }
+
+  const updatedCard = await getCard(cardId)
+  const newBalance = updatedCard?.points ?? 0
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('redemptions') as any).insert({
     customer_phone: customerPhone ?? null,
     customer_email: customerEmail ?? null,
     customer_name: customerName ?? null,
-    devotio_customer_id: customerId,
+    devotio_customer_id: customerId ?? null,
+    devotio_card_id: cardId,
     amount_redeemed: amount,
-    status: devotioResult.status === 'confirmed' ? 'confirmed' : 'failed',
-    devotio_redemption_id: devotioResult.redemption_id,
+    status: 'confirmed',
     initiated_by: user?.email ?? 'dashboard',
-    completed_at: devotioResult.status === 'confirmed' ? new Date().toISOString() : null,
+    completed_at: new Date().toISOString(),
   })
 
-  return NextResponse.json({
-    success: true,
-    newBalance: devotioResult.new_balance,
-    redemptionId: devotioResult.redemption_id,
-  })
+  return NextResponse.json({ success: true, newBalance })
 }
