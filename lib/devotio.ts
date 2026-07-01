@@ -3,7 +3,7 @@ const API_KEY = process.env.DEVOTIO_API_KEY!
 
 const headers = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${API_KEY}`,
+  'X-Api-Key': API_KEY,
 })
 
 export interface DevotioCustomer {
