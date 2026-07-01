@@ -71,7 +71,7 @@ export default function RedemptionModal({
       return
     }
 
-    toast.success(`✓ Canje de ₡${parsedAmount.toLocaleString('es-CR')} confirmado para ${customer.name}`)
+    toast.success(`✓ Canje de $${parsedAmount.toFixed(2)} confirmado para ${customer.name}`)
     setAmount('')
     onSuccess(data.newBalance ?? customer.balance - parsedAmount)
   }
@@ -86,7 +86,7 @@ export default function RedemptionModal({
           <DialogDescription className="text-gray-400">
             {customer.name} — Balance disponible:{' '}
             <span className="text-emerald-400 font-semibold">
-              ₡{customer.balance.toLocaleString('es-CR')}
+              ${customer.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </DialogDescription>
         </DialogHeader>
@@ -106,7 +106,7 @@ export default function RedemptionModal({
               </button>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₡</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
               <Input
                 id="amount"
                 type="number"
@@ -124,7 +124,7 @@ export default function RedemptionModal({
             )}
             {remaining !== null && remaining >= 0 && (
               <p className="text-gray-500 text-xs">
-                Balance restante: ₡{remaining.toLocaleString('es-CR')}
+                Balance restante: ${remaining.toFixed(2)}
               </p>
             )}
           </div>
@@ -143,7 +143,7 @@ export default function RedemptionModal({
               disabled={!isValid || loading}
               className="flex-1 bg-violet-600 hover:bg-violet-500 text-white"
             >
-              {loading ? 'Procesando...' : `Confirmar ₡${isValid ? parsedAmount.toLocaleString('es-CR') : '0'}`}
+              {loading ? 'Procesando...' : `Confirmar $${isValid ? parsedAmount.toFixed(2) : '0.00'}`}
             </Button>
           </div>
         </div>

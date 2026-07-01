@@ -56,7 +56,7 @@ export default function CustomerCard({ customer, onRedemptionComplete }: Custome
         <div className="px-5 py-4">
           <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Balance disponible</p>
           <p className="text-3xl font-bold text-emerald-400">
-            ₡{currentBalance.toLocaleString('es-CR')}
+            ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           {currentBalance <= 0 && (
             <p className="text-gray-600 text-xs mt-1">Sin saldo disponible para canjear</p>
