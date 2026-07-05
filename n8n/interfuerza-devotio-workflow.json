@@ -40,7 +40,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.first().json;\nconst syncRow = rows.find(r => r.key === 'last_processed_at');\nconst pctRow = rows.find(r => r.key === 'cashback_percentage');\nconst lastSyncRaw = syncRow?.value || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst cashbackPct = parseFloat(pctRow?.value || '2');\nconst lastDate = new Date(lastSyncRaw);\nconst now = new Date();\nconst fromDate = lastDate.toISOString().split('T')[0];\nconst toDate = now.toISOString().split('T')[0];\nreturn [{ json: { fromDate, toDate, lastSyncISO: lastDate.toISOString(), cashbackPct } }];"
+        "jsCode": "const items = $input.all();\nconst syncRow = items.find(i => i.json.key === 'last_processed_at')?.json;\nconst pctRow = items.find(i => i.json.key === 'cashback_percentage')?.json;\nconst lastSyncRaw = syncRow?.value || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst cashbackPct = parseFloat(pctRow?.value || '2');\nconst lastDate = new Date(lastSyncRaw);\nconst now = new Date();\nconst fromDate = lastDate.toISOString().split('T')[0];\nconst toDate = now.toISOString().split('T')[0];\nreturn [{ json: { fromDate, toDate, lastSyncISO: lastDate.toISOString(), cashbackPct } }];"
       },
       "id": "node-calc-dates",
       "name": "Calcular Rango de Fechas",
