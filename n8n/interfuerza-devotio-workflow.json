@@ -262,7 +262,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst cardData = $('Obtener Tarjeta del Cliente').item.json;\nconst card = cardData.data[0];\nconst devotioCustomerId = card.customerId || '';\n\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || inv.monto || 0);\nconst pct = parseFloat($vars.CASHBACK_PERCENTAGE || '5');\nconst cashbackAmount = parseFloat((amount * pct / 100).toFixed(2));\n\nreturn [{ json: {\n  invoiceId: String(inv.id || inv.Id || ''),\n  amount,\n  cashbackAmount,\n  cashbackPct: pct,\n  branch: inv.Bodega || inv.bodega || '',\n  txDate: inv.Date || inv.date || new Date().toISOString(),\n  customerName: inv._customerName || '',\n  customerPhone: inv._phone || '',\n  customerEmail: inv._email || '',\n  devotioCustomerId,\n  cardId: card.id\n} }];"
+        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst cardData = $('Obtener Tarjeta del Cliente').item.json;\nconst card = cardData.data[0];\nconst devotioCustomerId = card.customerId || '';\n\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || inv.monto || 0);\nconst pct = parseFloat($vars.CASHBACK_PERCENTAGE || '2');\nconst cashbackAmount = parseFloat((amount * pct / 100).toFixed(2));\n\nreturn [{ json: {\n  invoiceId: String(inv.id || inv.Id || ''),\n  amount,\n  cashbackAmount,\n  cashbackPct: pct,\n  branch: inv.Bodega || inv.bodega || '',\n  txDate: inv.Date || inv.date || new Date().toISOString(),\n  customerName: inv._customerName || '',\n  customerPhone: inv._phone || '',\n  customerEmail: inv._email || '',\n  devotioCustomerId,\n  cardId: card.id\n} }];"
       },
       "id": "node-calc-cashback",
       "name": "Calcular Cashback",
