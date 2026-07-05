@@ -68,12 +68,13 @@ export async function getCard(cardId: string): Promise<DevotioCard | null> {
 export async function addPoints(
   cardId: string,
   points: number,
+  purchaseSum: number,
   comment: string
 ): Promise<unknown> {
   const res = await fetch(`${BASE_URL}/cards/${cardId}/add-point`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ points, purchaseSum: points, comment }),
+    body: JSON.stringify({ points, purchaseSum, comment }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

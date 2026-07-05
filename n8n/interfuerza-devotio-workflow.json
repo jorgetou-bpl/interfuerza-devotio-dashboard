@@ -284,7 +284,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ points: $json.cashbackAmount, purchaseSum: $json.cashbackAmount, comment: 'Factura #' + $json.invoiceId }) }}",
+        "jsonBody": "={{ JSON.stringify({ points: $json.cashbackAmount, purchaseSum: $json.amount, comment: 'Factura #' + $json.invoiceId }) }}",
         "options": {}
       },
       "id": "node-register-cashback",
