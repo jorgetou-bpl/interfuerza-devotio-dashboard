@@ -16,10 +16,7 @@
       "name": "Cada 2 Minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        240,
-        300
-      ]
+      "position": [240, 300]
     },
     {
       "parameters": {
@@ -28,14 +25,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
-            }
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" }
           ]
         },
         "options": {}
@@ -44,23 +35,17 @@
       "name": "Leer Last Processed At",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        460,
-        300
-      ]
+      "position": [460, 300]
     },
     {
       "parameters": {
-        "jsCode": "// Extraer la fecha de last_processed_at y calcular rango\n// InterFuerza espera formato YYYY-MM-DD\nconst lastSyncRaw = $input.first().json[0]?.value || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst lastDate = new Date(lastSyncRaw);\nconst now = new Date();\n\nconst fromDate = lastDate.toISOString().split('T')[0];\nconst toDate = now.toISOString().split('T')[0];\n\nreturn [{ json: { fromDate, toDate, lastSyncISO: lastDate.toISOString() } }];"
+        "jsCode": "const lastSyncRaw = $input.first().json[0]?.value || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst lastDate = new Date(lastSyncRaw);\nconst now = new Date();\nconst fromDate = lastDate.toISOString().split('T')[0];\nconst toDate = now.toISOString().split('T')[0];\nreturn [{ json: { fromDate, toDate, lastSyncISO: lastDate.toISOString() } }];"
       },
       "id": "node-calc-dates",
       "name": "Calcular Rango de Fechas",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        680,
-        300
-      ]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -69,58 +54,42 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "x-ifx-token",
-              "value": "={{ $vars.INTERFUERZA_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "x-ifx-token", "value": "={{ $vars.INTERFUERZA_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ class: 'GET', action: 'invoices', page: '1', timestamp: { from: $json.fromDate, to: $json.toDate } }) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ class: 'GET', action: 'invoices', token: $vars.INTERFUERZA_TOKEN, page: '1', timestamp: [{ from: $json.fromDate, to: $json.toDate }] }) }}",
         "options": {}
       },
       "id": "node-get-invoices",
       "name": "Obtener Facturas InterFuerza",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        900,
-        300
-      ]
+      "position": [900, 300]
     },
     {
       "parameters": {
-        "jsCode": "// InterFuerza v4 devuelve { data: [...] } — normalizar\nconst raw = $input.first().json;\nconst invoices = raw.data || raw.invoices || raw.result || [];\n\nif (!Array.isArray(invoices) || invoices.length === 0) {\n  return [];\n}\n\nreturn invoices.map(inv => ({ json: inv }));"
+        "jsCode": "const raw = $input.first().json;\n\n// La API devuelve { data: \"<JSON string>\" } — hay que parsear el string\nlet parsed;\ntry {\n  parsed = typeof raw.data === 'string' ? JSON.parse(raw.data) : (raw.data || raw);\n} catch (e) {\n  return [];\n}\n\n// Las facturas vienen bajo la key 'invoices', cada una con { Invoice: {...}, Lines: [...] }\nconst invoices = parsed.invoices || [];\nif (!Array.isArray(invoices) || invoices.length === 0) return [];\n\nreturn invoices.map(item => ({\n  json: {\n    ...item.Invoice,\n    Lines: item.Lines || []\n  }\n}));"
       },
       "id": "node-normalize",
       "name": "Normalizar Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1120,
-        300
-      ]
+      "position": [1120, 300]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": false
-          },
+          "options": { "caseSensitive": false },
           "conditions": [
             {
               "id": "has-items",
               "leftValue": "={{ $input.all().length }}",
               "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
+              "operator": { "type": "number", "operation": "gt" }
             }
           ]
         }
@@ -129,10 +98,17 @@
       "name": "¿Hay Facturas?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        1340,
-        300
-      ]
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Colapsa todos los items de facturas en un solo item para que\n// el request a Supabase se haga UNA SOLA VEZ, no N veces.\nconst invoices = $input.all().map(i => i.json);\nreturn [{ json: { invoices } }];"
+      },
+      "id": "node-prep-dedup",
+      "name": "Preparar Dedup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 200]
     },
     {
       "parameters": {
@@ -141,52 +117,71 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
-            }
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" }
           ]
         },
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
       },
       "id": "node-get-processed",
       "name": "IDs Ya Procesados (Dedup)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1560,
-        200
-      ]
+      "position": [1780, 200]
     },
     {
       "parameters": {
-        "jsCode": "// Filtrar facturas que ya están en Supabase\nconst processedIds = new Set(\n  $('IDs Ya Procesados (Dedup)').all().flatMap(i => \n    Array.isArray(i.json) ? i.json.map(r => String(r.invoice_id)) : []\n  )\n);\n\nconst allInvoices = $('¿Hay Facturas?').all();\n\nconst newInvoices = allInvoices.filter(item => {\n  const id = String(item.json.id || item.json.Id || '');\n  return id && !processedIds.has(id);\n});\n\nreturn newInvoices.length > 0 ? newInvoices : [];"
+        "jsCode": "// Con fullResponse:true siempre recibimos 1 item aunque Supabase devuelva []\nconst supabaseResp = $input.first().json;\nconst rows = Array.isArray(supabaseResp.body) ? supabaseResp.body\n           : Array.isArray(supabaseResp) ? supabaseResp\n           : [];\nconst processedIds = new Set(rows.map(r => String(r.invoice_id)));\n\nconst allInvoices = $('Preparar Dedup').first().json.invoices || [];\nconst newInvoices = allInvoices.filter(inv => {\n  const id = String(inv.id || inv.Id || inv.invoice_id || '');\n  if (!id || processedIds.has(id)) return false;\n  // Filtrar saldos de apertura — no son ventas reales\n  const type = String(inv.Type || '').toUpperCase();\n  if (type === 'INIT-BALANCE') return false;\n  return true;\n});\nreturn newInvoices.map(inv => ({ json: inv }));"
       },
       "id": "node-filter-dupes",
       "name": "Filtrar Duplicados",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1780,
-        200
-      ]
+      "position": [1780, 200]
     },
     {
       "parameters": {
-        "jsCode": "// Extraer teléfono o email del item actual\nconst inv = $input.first().json;\nconst phone = String(inv.Telefono_1 || inv.telefono_1 || inv.Telefono || inv.telefono || '').trim();\nconst email = String(inv.Email || inv.email || '').trim();\nconst query = phone || email;\n\nreturn [{ json: { ...inv, _searchQuery: query, _phone: phone, _email: email, _searchField: phone ? 'Telefono_1' : 'Email' } }];"
+        "method": "POST",
+        "url": "https://app.interfuerza.com/api/v4/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-ifx-token", "value": "={{ $vars.INTERFUERZA_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ class: 'GET', action: 'customer', token: $vars.INTERFUERZA_TOKEN, id: $json.Cliente || $json.cliente || '' }) }}",
+        "options": {
+          "response": {
+            "response": { "neverError": true }
+          }
+        }
+      },
+      "id": "node-get-customer",
+      "name": "Obtener Cliente InterFuerza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const customerResp = $input.first().json;\n\n// El endpoint customer también devuelve { data: \"JSON string\" } — parsear igual que facturas\nlet parsed;\ntry {\n  parsed = typeof customerResp.data === 'string' ? JSON.parse(customerResp.data) : customerResp;\n} catch (e) {\n  parsed = customerResp;\n}\nconst customer = parsed.customer || parsed;\n\nconst inv = $('Filtrar Duplicados').item.json;\n\n// Normalizar teléfono Panama: quitar todos los no-dígitos, agregar 507 si faltan\nlet rawPhone = String(customer.Telefono_1 || customer.Cellular || '').replace(/\\D/g, '');\nlet phone = '';\nif (rawPhone.length === 8) {\n  // 8 dígitos locales → agregar prefijo 507\n  phone = '507' + rawPhone;\n} else if (rawPhone.startsWith('507') && rawPhone.length === 11) {\n  // Ya tiene prefijo 507 completo\n  phone = rawPhone;\n} else if (rawPhone.length > 0) {\n  // Otro formato (p.ej. fijo sin prefijo) — pasar tal cual\n  phone = rawPhone;\n}\n\nconst email = String(customer.Email || '').trim();\nconst customerName = customer.Nombre || inv.Nombre || inv.Cliente || '';\nconst clienteId = inv.Cliente || inv.cliente || '';\n\nreturn [{ json: {\n  ...inv,\n  _phone: phone,\n  _email: email,\n  _customerName: customerName,\n  _clienteId: clienteId,\n  _searchQuery: phone || email\n} }];"
       },
       "id": "node-extract-contact",
       "name": "Extraer Contacto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2000,
-        200
-      ]
+      "position": [2220, 200]
     },
     {
       "parameters": {
@@ -195,41 +190,27 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-Api-Key",
-              "value": "=$vars.DEVOTIO_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {
-              "name": "phone",
-              "value": "={{ $json._customerPhone }}"
-            }
+            { "name": "phone", "value": "={{ $json._phone }}" }
           ]
+        },
+        "options": {
+          "response": {
+            "response": { "neverError": true }
+          }
         }
       },
       "id": "node-search-devotio",
       "name": "Buscar Cliente en Devotio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2220,
-        200
-      ]
+      "position": [2440, 200]
     },
     {
       "parameters": {
@@ -238,30 +219,19 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-Api-Key",
-              "value": "=$vars.DEVOTIO_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {
-              "name": "customerId",
-              "value": "={{ $json.data[0].id }}"
-            }
+            { "name": "customerId", "value": "={{ $json.data[0].id }}" }
           ]
         },
         "options": {
           "response": {
-            "response": {
-              "neverError": true
-            }
+            "response": { "neverError": true }
           }
         }
       },
@@ -269,23 +239,17 @@
       "name": "Obtener Tarjeta del Cliente",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2330,
-        200
-      ]
+      "position": [2660, 200]
     },
     {
       "parameters": {
         "conditions": {
           "conditions": [
             {
-              "id": "devotio-found",
-              "leftValue": "={{ $json.customer?.id || $json.id || $json.data?.id || '' }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "isNotEmpty"
-              }
+              "id": "card-exists",
+              "leftValue": "={{ $json.data?.length ?? 0 }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
             }
           ]
         }
@@ -294,54 +258,40 @@
       "name": "¿Cliente en Devotio?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        2440,
-        200
-      ]
+      "position": [2880, 200]
     },
     {
       "parameters": {
-        "jsCode": "// Calcular cashback y preparar datos\nconst inv = $('Extraer Contacto').item.json;\nconst devotioResp = $('Buscar Cliente en Devotio').item.json;\nconst devotioCustomer = devotioResp.customer || devotioResp.data || devotioResp;\n\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || inv.monto || 0);\nconst pct = parseFloat($vars.CASHBACK_PERCENTAGE || '5');\nconst cashbackAmount = parseFloat((amount * pct / 100).toFixed(2));\n\nconst invoiceId = String(inv.id || inv.Id || '');\nconst branch = inv.Bodega || inv.bodega || inv.Sucursal || '';\nconst txDate = inv.Date || inv.date || inv.Fecha || new Date().toISOString();\nconst customerName = inv.Cliente || inv.cliente || inv.Nombre || '';\n\nreturn [{ json: {\n  invoiceId,\n  amount,\n  cashbackAmount,\n  cashbackPct: pct,\n  branch,\n  txDate,\n  customerName,\n  customerPhone: inv._phone,\n  customerEmail: inv._email,\n  devotioCustomerId: String(devotioCustomer.id || ''),\n  devotioCustomerName: devotioCustomer.name || devotioCustomer.nombre || ''\n} }];"
+        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst cardData = $('Obtener Tarjeta del Cliente').item.json;\nconst card = cardData.data[0];\nconst devotioCustomerId = card.customerId || '';\n\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || inv.monto || 0);\nconst pct = parseFloat($vars.CASHBACK_PERCENTAGE || '5');\nconst cashbackAmount = parseFloat((amount * pct / 100).toFixed(2));\n\nreturn [{ json: {\n  invoiceId: String(inv.id || inv.Id || ''),\n  amount,\n  cashbackAmount,\n  cashbackPct: pct,\n  branch: inv.Bodega || inv.bodega || '',\n  txDate: inv.Date || inv.date || new Date().toISOString(),\n  customerName: inv._customerName || '',\n  customerPhone: inv._phone || '',\n  customerEmail: inv._email || '',\n  devotioCustomerId,\n  cardId: card.id\n} }];"
       },
       "id": "node-calc-cashback",
       "name": "Calcular Cashback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2660,
-        100
-      ]
+      "position": [3100, 100]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $vars.DEVOTIO_API_URL }}/cards/{{ $('Obtener Tarjeta del Cliente').item.json.data[0].id }}/add-point",
+        "url": "={{ $vars.DEVOTIO_API_URL }}/cards/{{ $json.cardId }}/add-point",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-Api-Key",
-              "value": "=$vars.DEVOTIO_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ points: $json.cashbackAmount, purchaseSum: $json.cashbackAmount, comment: 'Factura #' + $json.invoiceId }) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.cashbackAmount, purchaseSum: $json.cashbackAmount, comment: 'Factura #' + $json.invoiceId }) }}",
         "options": {}
       },
       "id": "node-register-cashback",
       "name": "Registrar Cashback en Devotio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2880,
-        100
-      ]
+      "position": [3320, 100]
     },
     {
       "parameters": {
@@ -350,32 +300,19 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ invoice_id: $('Calcular Cashback').item.json.invoiceId, customer_name: $('Calcular Cashback').item.json.customerName, customer_phone: $('Calcular Cashback').item.json.customerPhone, customer_email: $('Calcular Cashback').item.json.customerEmail, amount: $('Calcular Cashback').item.json.amount, cashback_amount: $('Calcular Cashback').item.json.cashbackAmount, cashback_pct: $('Calcular Cashback').item.json.cashbackPct, branch: $('Calcular Cashback').item.json.branch, transaction_date: $('Calcular Cashback').item.json.txDate, status: 'processed', devotio_customer_id: $('Calcular Cashback').item.json.devotioCustomerId, devotio_transaction_id: $json.transaction_id || $json.id || null }) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Calcular Cashback').item.json.invoiceId, customer_name: $('Calcular Cashback').item.json.customerName, customer_phone: $('Calcular Cashback').item.json.customerPhone, customer_email: $('Calcular Cashback').item.json.customerEmail, amount: $('Calcular Cashback').item.json.amount, cashback_amount: $('Calcular Cashback').item.json.cashbackAmount, cashback_pct: $('Calcular Cashback').item.json.cashbackPct, branch: $('Calcular Cashback').item.json.branch, transaction_date: $('Calcular Cashback').item.json.txDate, status: 'processed', devotio_customer_id: $('Calcular Cashback').item.json.devotioCustomerId, devotio_card_id: $('Calcular Cashback').item.json.cardId }) }}",
         "options": {
           "response": {
-            "response": {
-              "neverError": true
-            }
+            "response": { "neverError": true }
           }
         }
       },
@@ -383,23 +320,17 @@
       "name": "Guardar Procesado en Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        3100,
-        100
-      ]
+      "position": [3540, 100]
     },
     {
       "parameters": {
-        "jsCode": "// Preparar insert de transacción pendiente (sin match en Devotio)\nconst inv = $('Extraer Contacto').item.json;\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || 0);\n\nreturn [{ json: {\n  invoice_id: String(inv.id || inv.Id || ''),\n  customer_name: inv.Cliente || inv.cliente || null,\n  customer_phone: inv._phone || null,\n  customer_email: inv._email || null,\n  amount,\n  branch: inv.Bodega || inv.bodega || null,\n  transaction_date: inv.Date || inv.date || new Date().toISOString(),\n  status: 'pending'\n} }];"
+        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || 0);\nreturn [{ json: {\n  invoice_id: String(inv.id || inv.Id || ''),\n  customer_name: inv._customerName || null,\n  customer_phone: inv._phone || null,\n  customer_email: inv._email || null,\n  amount,\n  branch: inv.Bodega || inv.bodega || null,\n  transaction_date: inv.Date || inv.date || new Date().toISOString(),\n  status: 'pending'\n} }];"
       },
       "id": "node-prep-pending",
       "name": "Preparar Pendiente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2660,
-        340
-      ]
+      "position": [3100, 340]
     },
     {
       "parameters": {
@@ -408,32 +339,19 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify($json) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
         "options": {
           "response": {
-            "response": {
-              "neverError": true
-            }
+            "response": { "neverError": true }
           }
         }
       },
@@ -441,10 +359,7 @@
       "name": "Guardar Pendiente en Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2880,
-        340
-      ]
+      "position": [3320, 340]
     },
     {
       "parameters": {
@@ -453,234 +368,88 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ value: new Date().toISOString(), updated_at: new Date().toISOString() }) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ value: new Date().toISOString(), updated_at: new Date().toISOString() }) }}",
         "options": {}
       },
       "id": "node-update-sync",
       "name": "Actualizar last_processed_at",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        3320,
-        220
-      ]
+      "position": [3760, 220]
     }
   ],
   "connections": {
     "Cada 2 Minutos": {
-      "main": [
-        [
-          {
-            "node": "Leer Last Processed At",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Leer Last Processed At", "type": "main", "index": 0 }]]
     },
     "Leer Last Processed At": {
-      "main": [
-        [
-          {
-            "node": "Calcular Rango de Fechas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Calcular Rango de Fechas", "type": "main", "index": 0 }]]
     },
     "Calcular Rango de Fechas": {
-      "main": [
-        [
-          {
-            "node": "Obtener Facturas InterFuerza",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Obtener Facturas InterFuerza", "type": "main", "index": 0 }]]
     },
     "Obtener Facturas InterFuerza": {
-      "main": [
-        [
-          {
-            "node": "Normalizar Respuesta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Normalizar Respuesta", "type": "main", "index": 0 }]]
     },
     "Normalizar Respuesta": {
-      "main": [
-        [
-          {
-            "node": "¿Hay Facturas?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "¿Hay Facturas?", "type": "main", "index": 0 }]]
     },
     "¿Hay Facturas?": {
       "main": [
-        [
-          {
-            "node": "IDs Ya Procesados (Dedup)",
-            "type": "main",
-            "index": 0
-          }
-        ],
+        [{ "node": "Preparar Dedup", "type": "main", "index": 0 }],
         []
       ]
     },
+    "Preparar Dedup": {
+      "main": [[{ "node": "IDs Ya Procesados (Dedup)", "type": "main", "index": 0 }]]
+    },
     "IDs Ya Procesados (Dedup)": {
-      "main": [
-        [
-          {
-            "node": "Filtrar Duplicados",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Filtrar Duplicados", "type": "main", "index": 0 }]]
     },
     "Filtrar Duplicados": {
-      "main": [
-        [
-          {
-            "node": "Extraer Contacto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Obtener Cliente InterFuerza", "type": "main", "index": 0 }]]
+    },
+    "Obtener Cliente InterFuerza": {
+      "main": [[{ "node": "Extraer Contacto", "type": "main", "index": 0 }]]
     },
     "Extraer Contacto": {
-      "main": [
-        [
-          {
-            "node": "Buscar Cliente en Devotio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Buscar Cliente en Devotio", "type": "main", "index": 0 }]]
     },
     "Buscar Cliente en Devotio": {
-      "main": [
-        [
-          {
-            "node": "Obtener Tarjeta del Cliente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Obtener Tarjeta del Cliente", "type": "main", "index": 0 }]]
+    },
+    "Obtener Tarjeta del Cliente": {
+      "main": [[{ "node": "¿Cliente en Devotio?", "type": "main", "index": 0 }]]
     },
     "¿Cliente en Devotio?": {
       "main": [
-        [
-          {
-            "node": "Calcular Cashback",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Preparar Pendiente",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Calcular Cashback", "type": "main", "index": 0 }],
+        [{ "node": "Preparar Pendiente", "type": "main", "index": 0 }]
       ]
     },
     "Calcular Cashback": {
-      "main": [
-        [
-          {
-            "node": "Registrar Cashback en Devotio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Registrar Cashback en Devotio", "type": "main", "index": 0 }]]
     },
     "Registrar Cashback en Devotio": {
-      "main": [
-        [
-          {
-            "node": "Guardar Procesado en Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Guardar Procesado en Supabase", "type": "main", "index": 0 }]]
     },
     "Guardar Procesado en Supabase": {
-      "main": [
-        [
-          {
-            "node": "Actualizar last_processed_at",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]]
     },
     "Preparar Pendiente": {
-      "main": [
-        [
-          {
-            "node": "Guardar Pendiente en Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Guardar Pendiente en Supabase", "type": "main", "index": 0 }]]
     },
     "Guardar Pendiente en Supabase": {
-      "main": [
-        [
-          {
-            "node": "Actualizar last_processed_at",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Obtener Tarjeta del Cliente": {
-      "main": [
-        [
-          {
-            "node": "¿Cliente en Devotio?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
@@ -690,20 +459,12 @@
     "errorWorkflow": ""
   },
   "staticData": null,
-  "meta": {
-    "instanceId": "interfuerza-devotio-v2"
-  },
+  "meta": { "instanceId": "interfuerza-devotio-v2" },
   "pinData": {},
-  "versionId": "2",
+  "versionId": "3",
   "triggerCount": 1,
   "tags": [
-    {
-      "id": "tag-devotio",
-      "name": "devotio-rewards"
-    },
-    {
-      "id": "tag-interfuerza",
-      "name": "interfuerza"
-    }
+    { "id": "tag-devotio", "name": "devotio-rewards" },
+    { "id": "tag-interfuerza", "name": "interfuerza" }
   ]
 }

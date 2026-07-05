@@ -43,8 +43,12 @@ export async function getCustomerCard(customerId: string): Promise<DevotioCard |
   })
   if (!res.ok) return null
   const data = await res.json()
-  if (Array.isArray(data.data) && data.data.length > 0) return data.data[0]
-  return null
+  if (!Array.isArray(data.data) || data.data.length === 0) return null
+  const raw = data.data[0]
+  return {
+    id: raw.id,
+    points: raw.balance?.balance ?? 0,
+  }
 }
 
 export async function getCard(cardId: string): Promise<DevotioCard | null> {
@@ -54,7 +58,11 @@ export async function getCard(cardId: string): Promise<DevotioCard | null> {
   })
   if (!res.ok) return null
   const data = await res.json()
-  return data.data ?? null
+  if (!data.data) return null
+  return {
+    id: data.data.id,
+    points: data.data.balance?.balance ?? 0,
+  }
 }
 
 export async function addPoints(
