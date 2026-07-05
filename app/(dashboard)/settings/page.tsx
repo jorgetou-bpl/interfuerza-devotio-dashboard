@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import SettingsForm from '@/components/SettingsForm'
 import type { Transaction } from '@/lib/supabase/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
   const supabase = await createClient()
 

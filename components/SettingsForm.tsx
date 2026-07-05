@@ -33,8 +33,10 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from('sync_state') as any)
-      .update({ value: String(val), updated_at: new Date().toISOString() })
-      .eq('key', 'cashback_percentage')
+      .upsert(
+        { key: 'cashback_percentage', value: String(val), updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
     setSaving(false)
     if (error) {
       toast.error('No se pudo guardar')
