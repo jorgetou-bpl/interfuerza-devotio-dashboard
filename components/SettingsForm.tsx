@@ -89,7 +89,7 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Frecuencia</span>
-            <span className="text-white">Cada 2 minutos</span>
+            <span className="text-white">Cada 20 minutos</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Origen</span>
