@@ -16,7 +16,10 @@
       "name": "Cada 20 Minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -25,8 +28,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
+            }
           ]
         },
         "options": {}
@@ -35,7 +44,10 @@
       "name": "Leer Sync State",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "_comment": "fetch both keys in one call"
     },
     {
@@ -46,7 +58,10 @@
       "name": "Calcular Rango de Fechas",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -55,8 +70,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-ifx-token", "value": "={{ $vars.INTERFUERZA_TOKEN }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-ifx-token",
+              "value": "={{ $vars.INTERFUERZA_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -69,7 +90,10 @@
       "name": "Obtener Facturas InterFuerza",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -79,18 +103,26 @@
       "name": "Normalizar Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false },
+          "options": {
+            "caseSensitive": false
+          },
           "conditions": [
             {
               "id": "has-items",
               "leftValue": "={{ $input.all().length }}",
               "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ]
         }
@@ -99,7 +131,10 @@
       "name": "¿Hay Facturas?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 300]
+      "position": [
+        1340,
+        300
+      ]
     },
     {
       "parameters": {
@@ -109,7 +144,10 @@
       "name": "Preparar Dedup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 200]
+      "position": [
+        1560,
+        200
+      ]
     },
     {
       "parameters": {
@@ -118,8 +156,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
+            }
           ]
         },
         "options": {
@@ -135,7 +179,10 @@
       "name": "IDs Ya Procesados (Dedup)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 200]
+      "position": [
+        1780,
+        200
+      ]
     },
     {
       "parameters": {
@@ -145,7 +192,10 @@
       "name": "Filtrar Duplicados",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 200]
+      "position": [
+        1780,
+        200
+      ]
     },
     {
       "parameters": {
@@ -154,8 +204,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-ifx-token", "value": "={{ $vars.INTERFUERZA_TOKEN }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "x-ifx-token",
+              "value": "={{ $vars.INTERFUERZA_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -164,7 +220,9 @@
         "jsonBody": "={{ JSON.stringify({ class: 'GET', action: 'customer', token: $vars.INTERFUERZA_TOKEN, id: $json.Cliente || $json.cliente || '' }) }}",
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
@@ -172,7 +230,10 @@
       "name": "Obtener Cliente InterFuerza",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2000, 200]
+      "position": [
+        2000,
+        200
+      ]
     },
     {
       "parameters": {
@@ -182,7 +243,10 @@
       "name": "Extraer Contacto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 200]
+      "position": [
+        2220,
+        200
+      ]
     },
     {
       "parameters": {
@@ -191,19 +255,30 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $vars.DEVOTIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json._phone }}" }
+            {
+              "name": "phone",
+              "value": "={{ $json._phone }}"
+            }
           ]
         },
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
@@ -211,7 +286,10 @@
       "name": "Buscar Cliente en Devotio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2440, 200]
+      "position": [
+        2440,
+        200
+      ]
     },
     {
       "parameters": {
@@ -220,19 +298,30 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $vars.DEVOTIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "customerId", "value": "={{ $json.data[0].id }}" }
+            {
+              "name": "customerId",
+              "value": "={{ $json.data[0].id }}"
+            }
           ]
         },
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
@@ -240,7 +329,10 @@
       "name": "Obtener Tarjeta del Cliente",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2660, 200]
+      "position": [
+        3120,
+        200
+      ]
     },
     {
       "parameters": {
@@ -250,7 +342,10 @@
               "id": "card-exists",
               "leftValue": "={{ $json.data?.length ?? 0 }}",
               "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ]
         }
@@ -259,7 +354,10 @@
       "name": "¿Cliente en Devotio?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2880, 200]
+      "position": [
+        3340,
+        200
+      ]
     },
     {
       "parameters": {
@@ -269,7 +367,10 @@
       "name": "Calcular Cashback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3100, 100]
+      "position": [
+        3560,
+        100
+      ]
     },
     {
       "parameters": {
@@ -278,8 +379,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Api-Key", "value": "={{ $vars.DEVOTIO_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $vars.DEVOTIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -292,7 +399,10 @@
       "name": "Registrar Cashback en Devotio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3320, 100]
+      "position": [
+        3780,
+        100
+      ]
     },
     {
       "parameters": {
@@ -301,10 +411,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -313,7 +435,9 @@
         "jsonBody": "={{ JSON.stringify({ invoice_id: $('Calcular Cashback').item.json.invoiceId, customer_name: $('Calcular Cashback').item.json.customerName, customer_phone: $('Calcular Cashback').item.json.customerPhone, customer_email: $('Calcular Cashback').item.json.customerEmail, amount: $('Calcular Cashback').item.json.amount, cashback_amount: $('Calcular Cashback').item.json.cashbackAmount, cashback_pct: $('Calcular Cashback').item.json.cashbackPct, branch: $('Calcular Cashback').item.json.branch, transaction_date: $('Calcular Cashback').item.json.txDate, status: 'processed', devotio_customer_id: $('Calcular Cashback').item.json.devotioCustomerId, devotio_card_id: $('Calcular Cashback').item.json.cardId }) }}",
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
@@ -321,7 +445,10 @@
       "name": "Guardar Procesado en Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3540, 100]
+      "position": [
+        4000,
+        100
+      ]
     },
     {
       "parameters": {
@@ -331,7 +458,10 @@
       "name": "Preparar Pendiente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3100, 340]
+      "position": [
+        3560,
+        340
+      ]
     },
     {
       "parameters": {
@@ -340,10 +470,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -352,7 +494,9 @@
         "jsonBody": "={{ JSON.stringify($json) }}",
         "options": {
           "response": {
-            "response": { "neverError": true }
+            "response": {
+              "neverError": true
+            }
           }
         }
       },
@@ -360,7 +504,10 @@
       "name": "Guardar Pendiente en Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3320, 340]
+      "position": [
+        3780,
+        340
+      ]
     },
     {
       "parameters": {
@@ -369,10 +516,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -385,72 +544,375 @@
       "name": "Actualizar last_processed_at",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3760, 220]
+      "position": [
+        4220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "phone-found",
+              "leftValue": "={{ $json.data?.length ?? 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "node-if-phone-found",
+      "name": "¿Encontrado por Teléfono?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DEVOTIO_API_URL }}/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $vars.DEVOTIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $('Extraer Contacto').item.json._email }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-search-email",
+      "name": "Buscar por Email en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "email-found",
+              "leftValue": "={{ $json.data?.length ?? 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "node-if-email-found",
+      "name": "¿Encontrado por Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        380
+      ]
     }
   ],
   "connections": {
     "Cada 2 Minutos": {
-      "main": [[{ "node": "Leer Last Processed At", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Leer Last Processed At",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Leer Last Processed At": {
-      "main": [[{ "node": "Calcular Rango de Fechas", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Calcular Rango de Fechas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Calcular Rango de Fechas": {
-      "main": [[{ "node": "Obtener Facturas InterFuerza", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Obtener Facturas InterFuerza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Obtener Facturas InterFuerza": {
-      "main": [[{ "node": "Normalizar Respuesta", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Normalizar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalizar Respuesta": {
-      "main": [[{ "node": "¿Hay Facturas?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "¿Hay Facturas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "¿Hay Facturas?": {
       "main": [
-        [{ "node": "Preparar Dedup", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Preparar Dedup",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "Preparar Dedup": {
-      "main": [[{ "node": "IDs Ya Procesados (Dedup)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IDs Ya Procesados (Dedup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IDs Ya Procesados (Dedup)": {
-      "main": [[{ "node": "Filtrar Duplicados", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Filtrar Duplicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Filtrar Duplicados": {
-      "main": [[{ "node": "Obtener Cliente InterFuerza", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Obtener Cliente InterFuerza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Obtener Cliente InterFuerza": {
-      "main": [[{ "node": "Extraer Contacto", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extraer Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extraer Contacto": {
-      "main": [[{ "node": "Buscar Cliente en Devotio", "type": "main", "index": 0 }]]
-    },
-    "Buscar Cliente en Devotio": {
-      "main": [[{ "node": "Obtener Tarjeta del Cliente", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Obtener Tarjeta del Cliente": {
-      "main": [[{ "node": "¿Cliente en Devotio?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "¿Cliente en Devotio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "¿Cliente en Devotio?": {
       "main": [
-        [{ "node": "Calcular Cashback", "type": "main", "index": 0 }],
-        [{ "node": "Preparar Pendiente", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Calcular Cashback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Calcular Cashback": {
-      "main": [[{ "node": "Registrar Cashback en Devotio", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Registrar Cashback en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Registrar Cashback en Devotio": {
-      "main": [[{ "node": "Guardar Procesado en Supabase", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Guardar Procesado en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Guardar Procesado en Supabase": {
-      "main": [[{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Actualizar last_processed_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Preparar Pendiente": {
-      "main": [[{ "node": "Guardar Pendiente en Supabase", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Guardar Pendiente en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Guardar Pendiente en Supabase": {
-      "main": [[{ "node": "Actualizar last_processed_at", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Actualizar last_processed_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente en Devotio": {
+      "main": [
+        [
+          {
+            "node": "¿Encontrado por Teléfono?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Encontrado por Teléfono?": {
+      "main": [
+        [
+          {
+            "node": "Obtener Tarjeta del Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar por Email en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar por Email en Devotio": {
+      "main": [
+        [
+          {
+            "node": "¿Encontrado por Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Encontrado por Email?": {
+      "main": [
+        [
+          {
+            "node": "Obtener Tarjeta del Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -460,12 +922,20 @@
     "errorWorkflow": ""
   },
   "staticData": null,
-  "meta": { "instanceId": "interfuerza-devotio-v2" },
+  "meta": {
+    "instanceId": "interfuerza-devotio-v2"
+  },
   "pinData": {},
   "versionId": "3",
   "triggerCount": 1,
   "tags": [
-    { "id": "tag-devotio", "name": "devotio-rewards" },
-    { "id": "tag-interfuerza", "name": "interfuerza" }
+    {
+      "id": "tag-devotio",
+      "name": "devotio-rewards"
+    },
+    {
+      "id": "tag-interfuerza",
+      "name": "interfuerza"
+    }
   ]
 }
