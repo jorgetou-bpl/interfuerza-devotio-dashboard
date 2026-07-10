@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchCustomer, getCustomerCard } from '@/lib/devotio'
+import { searchCustomers, getCustomerCard } from '@/lib/devotio'
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')
@@ -8,27 +8,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Query demasiado corta' }, { status: 400 })
   }
 
-  const devotioCustomer = await searchCustomer(q.trim())
+  const devotioCustomers = await searchCustomers(q.trim())
 
-  if (!devotioCustomer) {
-    return NextResponse.json({ customer: null }, { status: 200 })
+  if (devotioCustomers.length === 0) {
+    return NextResponse.json({ customer: null, customers: [] }, { status: 200 })
   }
 
-  const card = await getCustomerCard(devotioCustomer.id)
+  const withCards = await Promise.all(
+    devotioCustomers.map(async (c) => {
+      const card = await getCustomerCard(c.id)
+      if (!card) return null
+      return {
+        id: c.id,
+        name: `${c.firstName} ${c.surname}`.trim(),
+        phone: c.phone,
+        email: c.email,
+        cardId: card.id,
+        balance: card.points,
+        points: card.points,
+      }
+    })
+  )
 
-  if (!card) {
-    return NextResponse.json({ customer: null }, { status: 200 })
-  }
+  const customers = withCards.filter(Boolean) as NonNullable<typeof withCards[number]>[]
 
   return NextResponse.json({
-    customer: {
-      id: devotioCustomer.id,
-      name: `${devotioCustomer.firstName} ${devotioCustomer.surname}`.trim(),
-      phone: devotioCustomer.phone,
-      email: devotioCustomer.email,
-      cardId: card.id,
-      balance: card.points,
-      points: card.points,
-    },
+    customer: customers[0] ?? null,   // backward compat for CustomerSearch
+    customers,
   })
 }

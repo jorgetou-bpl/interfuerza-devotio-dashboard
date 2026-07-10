@@ -22,17 +22,28 @@ export interface DevotioCard {
   points: number
 }
 
-export async function searchCustomer(query: string): Promise<DevotioCustomer | null> {
-  const field = query.includes('@') ? 'email' : 'phone'
+function detectQueryField(query: string): 'phone' | 'email' | 'name' {
+  if (query.includes('@')) return 'email'
+  if (/^[\d+\s\-().]+$/.test(query)) return 'phone'
+  return 'name'
+}
+
+export async function searchCustomers(query: string): Promise<DevotioCustomer[]> {
+  const field = detectQueryField(query)
   const params = new URLSearchParams({ [field]: query })
   const res = await fetch(`${BASE_URL}/customers?${params}`, {
     headers: headers(),
     cache: 'no-store',
   })
-  if (!res.ok) return null
+  if (!res.ok) return []
   const data = await res.json()
-  if (Array.isArray(data.data) && data.data.length > 0) return data.data[0]
-  return null
+  if (Array.isArray(data.data)) return data.data
+  return []
+}
+
+export async function searchCustomer(query: string): Promise<DevotioCustomer | null> {
+  const results = await searchCustomers(query)
+  return results[0] ?? null
 }
 
 export async function getCustomerCard(customerId: string): Promise<DevotioCard | null> {

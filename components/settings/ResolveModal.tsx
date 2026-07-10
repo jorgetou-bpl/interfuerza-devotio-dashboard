@@ -41,7 +41,7 @@ export default function ResolveModal({ transaction, onResolved, onClose }: Props
       try {
         const res = await fetch(`/api/customers?q=${encodeURIComponent(query)}`)
         const data = await res.json()
-        setResults(data.customer ? [data.customer] : [])
+        setResults(Array.isArray(data.customers) ? data.customers : data.customer ? [data.customer] : [])
       } catch {
         setResults([])
       } finally {
@@ -134,7 +134,7 @@ export default function ResolveModal({ transaction, onResolved, onClose }: Props
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Nombre, teléfono o email..."
+                  placeholder="Nombre, teléfono (507...) o email..."
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-violet-500"
                 />
               </div>
