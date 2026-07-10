@@ -175,14 +175,18 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
 
 ### Vercel
 
+> **El deploy se mantiene en la cuenta del desarrollador** — el cliente no necesita cuenta de Vercel ni de GitHub. Esto es parte del modelo de mantenimiento mensual: el desarrollador controla la infraestructura y el código. Si en el futuro el cliente quisiera independizarse, se transfiere el repo y el proyecto de Vercel en ese momento.
+>
+> **Costo:** Vercel Hobby es suficiente para este proyecto (tráfico bajo, funciones rápidas). No se requiere plan Pro a menos que se escale a múltiples clientes en el mismo equipo.
+
 - [ ] **Actualizar variables de entorno** (Vercel → proyecto → Settings → Environment Variables)
 
   | Variable | Acción |
   |---|---|
   | `DEVOTIO_API_KEY` | Cambiar a la key de producción |
-  | `NEXT_PUBLIC_SUPABASE_URL` | Verificar |
-  | `SUPABASE_SERVICE_ROLE_KEY` | Verificar |
-  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Verificar |
+  | `NEXT_PUBLIC_SUPABASE_URL` | Actualizar si se migra a Supabase del cliente |
+  | `SUPABASE_SERVICE_ROLE_KEY` | Actualizar si se migra a Supabase del cliente |
+  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Actualizar si se migra a Supabase del cliente |
   | `DEVOTIO_API_URL` | Verificar |
 
 - [ ] **Redeploy** → Deployments → botón "Redeploy" en el último deployment para que tomen efecto las variables
@@ -193,15 +197,25 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
 
 ### Supabase
 
-- [ ] **Verificar que Realtime está activo** en las tablas `transactions` y `redemptions`
-  - Dashboard Supabase → Database → Replication → confirmar que ambas tablas aparecen
+> **Cambiar de Supabase no requiere cambios en el código.** Solo son variables de entorno. Si se migra a un proyecto Supabase del cliente, los pasos son los indicados abajo.
 
-- [ ] **Ajustar `last_processed_at`** (mismo comando que en la sección N8N arriba)
+#### Opción A — Mantener Supabase del desarrollador (más simple)
+No hay nada que hacer en esta sección. Solo verificar que Realtime y el usuario del cliente estén configurados.
 
+#### Opción B — Migrar a Supabase propio del cliente
+- [ ] Crear proyecto nuevo en [supabase.com](https://supabase.com)
+- [ ] Ejecutar el schema en SQL Editor → copiar y pegar el contenido de `supabase/schema.sql`
+- [ ] Habilitar Realtime en las tablas `transactions` y `redemptions`
+  - Supabase → Database → Replication → activar ambas tablas
+- [ ] Copiar las nuevas keys (URL, anon key, service role key) a Vercel y N8N
+- [ ] Redeploy en Vercel
+
+#### En cualquier caso:
 - [ ] **Crear usuario de acceso al dashboard para el cliente**
   - Supabase → Authentication → Users → Invite User
-  - Email del gerente del cliente
-  - El cliente recibe un email para crear su contraseña
+  - Email del gerente del cliente → recibe correo para crear su contraseña
+
+- [ ] **Ajustar `last_processed_at`** (mismo comando que en la sección N8N arriba)
 
 - [ ] **Verificar RLS** — solo usuarios autenticados pueden leer/escribir
 
@@ -239,10 +253,13 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
 
 | Componente | Detalle |
 |---|---|
-| Dashboard URL | Vercel (dominio asignado) |
-| Base de datos | Supabase (PostgreSQL + Realtime) |
+| Dashboard URL | Vercel — cuenta del desarrollador (cliente no necesita cuenta) |
+| Repo GitHub | Cuenta empresarial del desarrollador — no se entrega al cliente |
+| Base de datos | Supabase — cuenta del desarrollador o del cliente (solo cambian env vars) |
 | Automatización | N8N Cloud — corre cada 20 min |
 | API Cashback | Devotio Rewards / DigitalWalletCards v2 |
 | API POS | InterFuerza v4 |
 | Cashback % | Configurable desde el dashboard → Configuración |
 | Ejecuciones N8N | ~2,160/mes (dentro del límite de 2,500 del plan Starter) |
+| Costo infraestructura | Vercel Hobby $0 · Supabase Free tier $0 · N8N Starter $24/mes |
+| Schema de BD | `supabase/schema.sql` — correr en cualquier proyecto Supabase nuevo |
