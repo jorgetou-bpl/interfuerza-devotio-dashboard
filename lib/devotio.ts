@@ -37,8 +37,32 @@ export async function searchCustomers(query: string): Promise<DevotioCustomer[]>
   })
   if (!res.ok) return []
   const data = await res.json()
-  if (Array.isArray(data.data)) return data.data
-  return []
+  if (!Array.isArray(data.data)) return []
+
+  const results: DevotioCustomer[] = data.data
+
+  if (field !== 'name') return results
+
+  // For name queries: filter to customers that actually match all search words,
+  // then sort so firstName matches come before surname-only matches.
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+
+  const filtered = results.filter((c) => {
+    const full = `${c.firstName} ${c.surname}`.toLowerCase()
+    return words.every((w) => full.includes(w))
+  })
+
+  filtered.sort((a, b) => {
+    const aFirst = a.firstName.toLowerCase()
+    const bFirst = b.firstName.toLowerCase()
+    const firstWord = words[0]
+    const aScore = aFirst.startsWith(firstWord) ? 0 : 1
+    const bScore = bFirst.startsWith(firstWord) ? 0 : 1
+    if (aScore !== bScore) return aScore - bScore
+    return `${a.firstName} ${a.surname}`.localeCompare(`${b.firstName} ${b.surname}`)
+  })
+
+  return filtered
 }
 
 export async function searchCustomer(query: string): Promise<DevotioCustomer | null> {
