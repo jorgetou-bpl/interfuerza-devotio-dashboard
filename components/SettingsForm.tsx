@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import ConfirmPasswordModal from '@/components/settings/ConfirmPasswordModal'
 
 interface SettingsFormProps {
   cashbackPct: string
@@ -15,6 +16,7 @@ interface SettingsFormProps {
 export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProps) {
   const [pct, setPct] = useState(cashbackPct)
   const [saving, setSaving] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const lastSyncFormatted = lastSync
     ? new Date(lastSync).toLocaleString('es-AR', {
@@ -23,12 +25,18 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
       })
     : 'Sin datos'
 
-  async function save() {
+  function requestSave() {
     const val = parseFloat(pct)
     if (isNaN(val) || val < 0 || val > 100) {
       toast.error('Porcentaje inválido (0–100)')
       return
     }
+    setShowConfirm(true)
+  }
+
+  async function save() {
+    setShowConfirm(false)
+    const val = parseFloat(pct)
     setSaving(true)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +54,7 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
   }
 
   return (
+    <>
     <div className="space-y-5">
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
         <h2 className="text-white text-sm font-semibold">Parámetros de cashback</h2>
@@ -66,7 +75,7 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
             </div>
             <Button
-              onClick={save}
+              onClick={requestSave}
               disabled={saving}
               className="bg-violet-600 hover:bg-violet-500 text-white"
             >
@@ -75,6 +84,7 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
           </div>
           <p className="text-gray-500 text-xs">
             Cada factura procesada acredita este % del monto total como cashback.
+            Los cambios aplican solo a facturas futuras.
           </p>
         </div>
       </div>
@@ -102,5 +112,13 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
         </div>
       </div>
     </div>
+
+    {showConfirm && (
+      <ConfirmPasswordModal
+        onConfirmed={save}
+        onCancel={() => setShowConfirm(false)}
+      />
+    )}
+    </>
   )
 }
