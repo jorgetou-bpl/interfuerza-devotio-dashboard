@@ -18,7 +18,7 @@
 ```json
 [
   {
-    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00020\",\"Cliente\":\"C0005\",\"Nombre\":\"PAMELA VILLARREAL\",\"Pais\":\"PANAMA\",\"Bodega\":\"Bodega Principal\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-16\",\"Comentario\":\"\",\"SubTotal\":\"41.59\",\"Discount\":\"0.00\",\"Taxes\":\"2.91\",\"Total\":\"44.50\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
+    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00023\",\"Cliente\":\"C0005\",\"Nombre\":\"PAMELA VILLARREAL\",\"Pais\":\"PANAMA\",\"Bodega\":\"Bodega Principal\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-16\",\"Comentario\":\"\",\"SubTotal\":\"41.59\",\"Discount\":\"0.00\",\"Taxes\":\"2.91\",\"Total\":\"44.50\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
   }
 ]
 ```
@@ -41,7 +41,7 @@
 ```json
 [
   {
-    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00021\",\"Cliente\":\"C0008\",\"Nombre\":\"PAMELA VILLARREAL\",\"Pais\":\"PANAMA\",\"Bodega\":\"Sucursal Norte\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-17\",\"Comentario\":\"\",\"SubTotal\":\"27.43\",\"Discount\":\"0.00\",\"Taxes\":\"1.92\",\"Total\":\"29.35\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
+    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00024\",\"Cliente\":\"C0008\",\"Nombre\":\"PAMELA VILLARREAL\",\"Pais\":\"PANAMA\",\"Bodega\":\"Sucursal Norte\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-17\",\"Comentario\":\"\",\"SubTotal\":\"27.43\",\"Discount\":\"0.00\",\"Taxes\":\"1.92\",\"Total\":\"29.35\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
   }
 ]
 ```
@@ -70,7 +70,7 @@
 ```json
 [
   {
-    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00022\",\"Cliente\":\"C0015\",\"Nombre\":\"CARLOS MENDOZA\",\"Pais\":\"PANAMA\",\"Bodega\":\"Bodega Principal\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-18\",\"Comentario\":\"\",\"SubTotal\":\"53.10\",\"Discount\":\"0.00\",\"Taxes\":\"3.72\",\"Total\":\"56.82\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
+    "data": "{\"class\":\"GET\",\"action\":\"invoices\",\"invoices\":[{\"Invoice\":{\"id\":\"INV00025\",\"Cliente\":\"C0015\",\"Nombre\":\"CARLOS MENDOZA\",\"Pais\":\"PANAMA\",\"Bodega\":\"Bodega Principal\",\"Status\":\"DELIVERED\",\"Date\":\"2024-12-18\",\"Comentario\":\"\",\"SubTotal\":\"53.10\",\"Discount\":\"0.00\",\"Taxes\":\"3.72\",\"Total\":\"56.82\",\"Credit_Term\":\"C.O.D.\",\"Balance\":\"0.00\",\"Type\":\"SALES-TEAM\",\"Vendedor\":\"\",\"Currency\":\"USD\",\"Currency_Rate\":\"1.000000000\"},\"Lines\":[]}],\"count\":\"1\"}"
   }
 ]
 ```
