@@ -140,20 +140,25 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
 
 ### N8N
 
-- [ ] **Reimportar el workflow actualizado**
-  - Descargar `n8n/interfuerza-devotio-workflow.json` del repo
-  - N8N → Settings → Import Workflow → reemplazar el actual
+> **Nota técnica:** el workflow usa valores directamente en los nodos (no Variables globales de N8N, que requieren plan Team). Los valores se configuran en el JSON antes de importar o editando cada nodo después.
 
-- [ ] **Actualizar variables de entorno** (N8N → Settings → Variables)
+- [ ] **Preparar el JSON con las keys del cliente**
+  - Abrir `n8n/interfuerza-devotio-workflow-v2.json` en un editor de texto (VSCode, Sublime, etc.)
+  - Hacer Find & Replace de los siguientes valores:
 
-  | Variable | Cambiar a |
+  | Buscar | Reemplazar con |
   |---|---|
-  | `DEVOTIO_API_KEY` | Key de producción del cliente (no la de test `542bcbc6...`) |
-  | `INTERFUERZA_TOKEN` | Token de producción del cliente |
-  | `SUPABASE_URL` | Verificar que apunta al proyecto correcto |
-  | `SUPABASE_SERVICE_KEY` | Verificar |
-  | `DEVOTIO_API_URL` | Verificar |
-  | `CASHBACK_PERCENTAGE` | `2` (respaldo, el valor real viene de Supabase) |
+  | `__DEVOTIO_API_KEY__` | API key de Devotio del cliente |
+  | `__INTERFUERZA_TOKEN__` | Token de InterFuerza del cliente |
+  | `__SUPABASE_SERVICE_KEY__` | Service role key del Supabase del cliente |
+  | `TU-PROYECTO.supabase.co` | URL del proyecto Supabase del cliente |
+  | `https://api.digitalwallet.cards/api/v2` | Verificar (debería ser la misma URL) |
+
+  - Guardar el archivo con otro nombre (ej. `interfuerza-devotio-cliente-READY.json`)
+  - **No subir ese archivo a git** — contiene keys en texto plano
+
+- [ ] **Importar el workflow**
+  - N8N del cliente → **Workflows** → **Import from file** → seleccionar el JSON preparado
 
 - [ ] **Quitar todos los Pin Data**
   - Nodo "Obtener Facturas InterFuerza" → botón Pin → quitar
