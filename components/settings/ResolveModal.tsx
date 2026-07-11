@@ -99,6 +99,19 @@ export default function ResolveModal({ transaction, onResolved, onClose }: Props
             </p>
           </div>
 
+          {/* One-time mapping notice */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex gap-3">
+            <span className="text-amber-400 text-sm mt-0.5 shrink-0">ⓘ</span>
+            <div className="space-y-0.5">
+              <p className="text-amber-300 text-xs font-medium">Mapeo puntual — solo esta factura</p>
+              <p className="text-amber-200/70 text-xs">
+                El cashback se acredita únicamente para esta transacción. Para que futuras
+                compras se procesen automáticamente, el dueño del negocio debe actualizar
+                el teléfono o email de este cliente directamente en Devotio.
+              </p>
+            </div>
+          </div>
+
           {selected ? (
             /* Confirm step */
             <div className="space-y-3">
