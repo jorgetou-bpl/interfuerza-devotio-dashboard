@@ -138,13 +138,28 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
 
 ## Parte 2 — Checklist de Puesta en Producción
 
-### N8N
+> **Estrategia acordada:** el cliente crea sus propias cuentas de N8N y Supabase. El desarrollador recibe los accesos/keys y configura todo. El dashboard (Vercel + GitHub) se mantiene en la cuenta del desarrollador como parte del mantenimiento mensual.
 
-> **Nota técnica:** el workflow usa valores directamente en los nodos (no Variables globales de N8N, que requieren plan Team). Los valores se configuran en el JSON antes de importar o editando cada nodo después.
+### Lo que el cliente debe crear antes de la configuración
+
+- [ ] Cuenta N8N Cloud en [n8n.io](https://n8n.io) — plan **Starter ($24/mes)**
+  - Compartir acceso: invitar al desarrollador como miembro, o compartir las credenciales de acceso
+- [ ] Cuenta Supabase en [supabase.com](https://supabase.com) — plan **Free**
+  - Crear un proyecto nuevo (elegir región más cercana, ej. US East)
+  - Compartir desde **Project Settings → API**:
+    - Project URL
+    - `anon` public key
+    - `service_role` secret key
+
+---
+
+### N8N (developer configura en la cuenta del cliente)
+
+> **Nota técnica:** el workflow usa valores directamente en los nodos (no Variables globales, que requieren plan Team de N8N).
 
 - [ ] **Preparar el JSON con las keys del cliente**
-  - Abrir `n8n/interfuerza-devotio-workflow-v2.json` en un editor de texto (VSCode, Sublime, etc.)
-  - Hacer Find & Replace de los siguientes valores:
+  - Abrir `n8n/interfuerza-devotio-workflow-v2.json` en VSCode
+  - Find & Replace de los 5 valores:
 
   | Buscar | Reemplazar con |
   |---|---|
@@ -152,77 +167,59 @@ Escenario 2  →  cerrar con el fallback de email como feature extra
   | `__INTERFUERZA_TOKEN__` | Token de InterFuerza del cliente |
   | `__SUPABASE_SERVICE_KEY__` | Service role key del Supabase del cliente |
   | `TU-PROYECTO.supabase.co` | URL del proyecto Supabase del cliente |
-  | `https://api.digitalwallet.cards/api/v2` | Verificar (debería ser la misma URL) |
+  | `https://api.digitalwallet.cards/api/v2` | Verificar — misma URL |
 
-  - Guardar el archivo con otro nombre (ej. `interfuerza-devotio-cliente-READY.json`)
-  - **No subir ese archivo a git** — contiene keys en texto plano
+  - Guardar como `interfuerza-devotio-cliente-READY.json` (no subir a git)
 
-- [ ] **Importar el workflow**
-  - N8N del cliente → **Workflows** → **Import from file** → seleccionar el JSON preparado
+- [ ] **Importar en N8N del cliente**
+  - Workflows → Import from file → seleccionar el JSON preparado
 
 - [ ] **Quitar todos los Pin Data**
   - Nodo "Obtener Facturas InterFuerza" → botón Pin → quitar
-  - Nodo "Obtener Cliente InterFuerza" → verificar que no tenga pin
-  - Revisar que ningún nodo tenga el ícono de pin activo
+  - Nodo "Obtener Cliente InterFuerza" → verificar sin pin
+  - Confirmar que ningún nodo tiene el ícono de pin activo
 
-- [ ] **Ajustar punto de inicio en Supabase** (para no reingesar facturas históricas)
+- [ ] **Activar el trigger**
+  - Click en "Cada 20 Minutos" → Activate
+  - Confirmar que el workflow aparece como "Active"
+
+---
+
+### Supabase (developer configura en la cuenta del cliente)
+
+- [ ] **Ejecutar el schema**
+  - SQL Editor → copiar y pegar el contenido completo de `supabase/schema.sql` → Run
+
+- [ ] **Habilitar Realtime**
+  - Database → Replication → activar tablas `transactions` y `redemptions`
+
+- [ ] **Ajustar punto de inicio** (evita reingestar facturas históricas)
   ```sql
   UPDATE sync_state
   SET value = NOW()::TEXT, updated_at = NOW()
   WHERE key = 'last_processed_at';
   ```
 
-- [ ] **Activar el trigger**
-  - Click en el nodo "Cada 20 Minutos" → Activate
-  - Confirmar que el workflow aparece como "Active" en el listado de N8N
+- [ ] **Crear usuario del dashboard**
+  - Authentication → Users → Invite User
+  - Email del gerente → recibe correo para crear su contraseña
 
 ---
 
-### Vercel
+### Vercel (developer actualiza en su cuenta)
 
-> **El deploy se mantiene en la cuenta del desarrollador** — el cliente no necesita cuenta de Vercel ni de GitHub. Esto es parte del modelo de mantenimiento mensual: el desarrollador controla la infraestructura y el código. Si en el futuro el cliente quisiera independizarse, se transfiere el repo y el proyecto de Vercel en ese momento.
->
-> **Costo:** Vercel Hobby es suficiente para este proyecto (tráfico bajo, funciones rápidas). No se requiere plan Pro a menos que se escale a múltiples clientes en el mismo equipo.
+- [ ] **Actualizar variables de entorno** (Settings → Environment Variables)
 
-- [ ] **Actualizar variables de entorno** (Vercel → proyecto → Settings → Environment Variables)
-
-  | Variable | Acción |
+  | Variable | Valor |
   |---|---|
-  | `DEVOTIO_API_KEY` | Cambiar a la key de producción |
-  | `NEXT_PUBLIC_SUPABASE_URL` | Actualizar si se migra a Supabase del cliente |
-  | `SUPABASE_SERVICE_ROLE_KEY` | Actualizar si se migra a Supabase del cliente |
-  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Actualizar si se migra a Supabase del cliente |
-  | `DEVOTIO_API_URL` | Verificar |
+  | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase del cliente |
+  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key del cliente |
+  | `SUPABASE_SERVICE_ROLE_KEY` | Service role key del cliente |
+  | `DEVOTIO_API_KEY` | API key de Devotio del cliente |
 
-- [ ] **Redeploy** → Deployments → botón "Redeploy" en el último deployment para que tomen efecto las variables
+- [ ] **Redeploy** → Deployments → Redeploy en el último deployment
 
-- [ ] **Verificar URL del dashboard** — compartir con el cliente
-
----
-
-### Supabase
-
-> **Cambiar de Supabase no requiere cambios en el código.** Solo son variables de entorno. Si se migra a un proyecto Supabase del cliente, los pasos son los indicados abajo.
-
-#### Opción A — Mantener Supabase del desarrollador (más simple)
-No hay nada que hacer en esta sección. Solo verificar que Realtime y el usuario del cliente estén configurados.
-
-#### Opción B — Migrar a Supabase propio del cliente
-- [ ] Crear proyecto nuevo en [supabase.com](https://supabase.com)
-- [ ] Ejecutar el schema en SQL Editor → copiar y pegar el contenido de `supabase/schema.sql`
-- [ ] Habilitar Realtime en las tablas `transactions` y `redemptions`
-  - Supabase → Database → Replication → activar ambas tablas
-- [ ] Copiar las nuevas keys (URL, anon key, service role key) a Vercel y N8N
-- [ ] Redeploy en Vercel
-
-#### En cualquier caso:
-- [ ] **Crear usuario de acceso al dashboard para el cliente**
-  - Supabase → Authentication → Users → Invite User
-  - Email del gerente del cliente → recibe correo para crear su contraseña
-
-- [ ] **Ajustar `last_processed_at`** (mismo comando que en la sección N8N arriba)
-
-- [ ] **Verificar RLS** — solo usuarios autenticados pueden leer/escribir
+- [ ] **Verificar** que el dashboard carga y el login funciona con las credenciales del cliente
 
 ---
 
