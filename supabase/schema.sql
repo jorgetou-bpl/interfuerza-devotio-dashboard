@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS sync_state (
 -- Valores iniciales
 INSERT INTO sync_state (key, value) VALUES
   ('last_processed_at', to_char(NOW() - interval '1 hour', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-  ('cashback_percentage', '5')
+  ('cashback_percentage', '2')
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================
