@@ -30,24 +30,35 @@ function detectQueryField(query: string): 'phone' | 'email' | 'name' {
 
 export async function searchCustomers(query: string): Promise<DevotioCustomer[]> {
   const field = detectQueryField(query)
-  const params = new URLSearchParams({ [field]: query })
-  const res = await fetch(`${BASE_URL}/customers?${params}`, {
-    headers: headers(),
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  if (!Array.isArray(data.data)) return []
 
-  const results: DevotioCustomer[] = data.data
+  if (field !== 'name') {
+    const params = new URLSearchParams({ [field]: query })
+    const res = await fetch(`${BASE_URL}/customers?${params}`, {
+      headers: headers(),
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.data) ? (data.data as DevotioCustomer[]) : []
+  }
 
-  if (field !== 'name') return results
+  // Name search: Devotio has no name filter — paginate through all customers and filter locally
+  const all: DevotioCustomer[] = []
+  for (let page = 1; ; page++) {
+    const res = await fetch(`${BASE_URL}/customers?page=${page}`, {
+      headers: headers(),
+      cache: 'no-store',
+    })
+    if (!res.ok) break
+    const data = await res.json()
+    if (!Array.isArray(data.data) || data.data.length === 0) break
+    all.push(...(data.data as DevotioCustomer[]))
+    const meta = data.meta as { totalItems?: number } | undefined
+    if (!meta?.totalItems || all.length >= meta.totalItems) break
+  }
 
-  // For name queries: filter to customers that actually match all search words,
-  // then sort so firstName matches come before surname-only matches.
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-
-  const filtered = results.filter((c) => {
+  const filtered = all.filter((c) => {
     const full = `${c.firstName} ${c.surname}`.toLowerCase()
     return words.every((w) => full.includes(w))
   })

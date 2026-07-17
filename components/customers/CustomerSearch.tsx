@@ -17,20 +17,23 @@ interface Customer {
 
 export default function CustomerSearch() {
   const [query, setQuery] = useState('')
-  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [notFound, setNotFound] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function search() {
     if (!query.trim()) return
     setNotFound(false)
-    setCustomer(null)
+    setCustomers([])
     startTransition(async () => {
       const res = await fetch(`/api/customers?q=${encodeURIComponent(query)}`)
       if (res.ok) {
         const data = await res.json()
-        if (data.customer) {
-          setCustomer(data.customer)
+        const list: Customer[] = data.customers?.length > 0
+          ? data.customers
+          : data.customer ? [data.customer] : []
+        if (list.length > 0) {
+          setCustomers(list)
         } else {
           setNotFound(true)
         }
@@ -51,7 +54,7 @@ export default function CustomerSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Teléfono o email del cliente..."
+          placeholder="Teléfono, email o nombre..."
           className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-emerald-500"
         />
         <Button
@@ -66,12 +69,22 @@ export default function CustomerSearch() {
       {notFound && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
           <p className="text-amber-400 text-sm">
-            No se encontró ningún cliente con ese teléfono o email en Devotio Rewards.
+            No se encontró ningún cliente en Devotio Rewards.
           </p>
         </div>
       )}
 
-      {customer && <CustomerCard customer={customer} onRedemptionComplete={() => setCustomer(null)} />}
+      {customers.length > 1 && (
+        <p className="text-gray-500 text-xs">{customers.length} clientes encontrados</p>
+      )}
+
+      {customers.map((c) => (
+        <CustomerCard
+          key={c.id}
+          customer={c}
+          onRedemptionComplete={() => setCustomers((prev) => prev.filter((x) => x.id !== c.id))}
+        />
+      ))}
     </div>
   )
 }
