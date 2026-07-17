@@ -9,7 +9,7 @@ async function RecentTransactions() {
   const { data } = await supabase
     .from('transactions')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('transaction_date', { ascending: false })
     .limit(30)
 
   return <LiveFeed initial={(data as Transaction[]) ?? []} />

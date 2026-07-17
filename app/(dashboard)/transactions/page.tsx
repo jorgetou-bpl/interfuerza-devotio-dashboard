@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
-import { formatDistanceToNow } from 'date-fns'
-import { es } from 'date-fns/locale'
 import type { Transaction, TransactionStatus } from '@/lib/supabase/types'
 
 const statusConfig: Record<TransactionStatus, { label: string; className: string }> = {
@@ -31,7 +29,7 @@ export default async function TransactionsPage({
   let query = supabase
     .from('transactions')
     .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
+    .order('transaction_date', { ascending: false })
     .range(offset, offset + pageSize - 1)
 
   if (params.status && params.status !== 'all') {
@@ -119,7 +117,10 @@ export default async function TransactionsPage({
             ) : (
               transactions.map((tx) => {
                 const cfg = statusConfig[tx.status] ?? statusConfig.pending
-                const ago = formatDistanceToNow(new Date(tx.created_at), { addSuffix: true, locale: es })
+                const raw = tx.transaction_date ?? tx.created_at
+                const dateStr = raw
+                  ? new Date(raw).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '—'
                 return (
                   <tr key={tx.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">#{tx.invoice_id}</td>
@@ -137,7 +138,7 @@ export default async function TransactionsPage({
                       }
                     </td>
                     <td className="px-4 py-3 text-gray-400">{tx.branch ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{ago}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{dateStr}</td>
                     <td className="px-4 py-3">
                       <Badge variant="outline" className={`text-xs ${cfg.className}`}>
                         {cfg.label}
