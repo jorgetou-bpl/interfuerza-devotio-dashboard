@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { es } from 'date-fns/locale'
 import ResolveModal from './ResolveModal'
 import type { Transaction } from '@/lib/supabase/types'
 
@@ -40,10 +38,10 @@ export default function PendingResolutionPanel({ pending }: Props) {
           </div>
         ) : (
           items.map((tx) => {
-            const ago = formatDistanceToNow(new Date(tx.created_at), {
-              addSuffix: true,
-              locale: es,
-            })
+            const raw = tx.transaction_date ?? tx.created_at
+            const dateStr = raw
+              ? new Date(raw.includes('T') ? raw : raw + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+              : '—'
             return (
               <div
                 key={tx.id}
@@ -54,7 +52,7 @@ export default function PendingResolutionPanel({ pending }: Props) {
                   <p className="text-gray-500 text-xs">
                     Factura #{tx.invoice_id} · {tx.branch ?? '—'}
                   </p>
-                  <p className="text-gray-600 text-xs">{ago}</p>
+                  <p className="text-gray-600 text-xs">{dateStr}</p>
                 </div>
                 <div className="text-right ml-4 flex-shrink-0 flex flex-col items-end gap-1.5">
                   <p className="text-white text-sm font-semibold">${Number(tx.amount).toFixed(2)}</p>

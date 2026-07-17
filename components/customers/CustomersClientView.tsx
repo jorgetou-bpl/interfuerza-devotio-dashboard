@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { es } from 'date-fns/locale'
 import CustomerSearch from './CustomerSearch'
 import type { Redemption } from '@/lib/supabase/types'
 
@@ -76,10 +74,7 @@ function RedemptionHistory({ redemptions }: { redemptions: Redemption[] }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       {redemptions.map((r) => {
-        const ago = formatDistanceToNow(new Date(r.created_at), {
-          addSuffix: true,
-          locale: es,
-        })
+        const ago = new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
         const statusClass =
           r.status === 'confirmed'
             ? 'text-emerald-400 bg-emerald-400/10'
