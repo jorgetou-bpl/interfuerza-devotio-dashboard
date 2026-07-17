@@ -59,7 +59,13 @@ export default async function StatsCards() {
   const txCount = todayTx.length
 
   const lastSync = syncValue
-    ? new Date(syncValue).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(syncValue).toLocaleString('es', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Panama',
+      })
     : '—'
 
   return (
