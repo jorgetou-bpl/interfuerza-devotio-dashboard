@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import type { Transaction } from '@/lib/supabase/types'
+import { formatTxDateTime } from '@/lib/format'
 
 const statusConfig = {
   processed: { label: 'Procesado', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
@@ -7,16 +8,9 @@ const statusConfig = {
   error: { label: 'Error', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
 }
 
-function formatTxDate(raw: string | null | undefined): string {
-  const src = raw ?? ''
-  if (!src) return '—'
-  const d = new Date(src.includes('T') ? src : src + 'T12:00:00')
-  return d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 export default function TransactionCard({ tx }: { tx: Transaction }) {
   const cfg = statusConfig[tx.status] ?? statusConfig.pending
-  const dateStr = formatTxDate(tx.transaction_date ?? tx.created_at)
+  const dateStr = formatTxDateTime(tx.transaction_date ?? tx.created_at)
 
   return (
     <div className="flex items-start gap-4 px-4 py-3 border-b border-gray-800 hover:bg-gray-900/50 transition-colors">

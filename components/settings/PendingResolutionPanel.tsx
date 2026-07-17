@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ResolveModal from './ResolveModal'
+import { formatTxDateTime } from '@/lib/format'
 import type { Transaction } from '@/lib/supabase/types'
 
 interface Props {
@@ -38,10 +39,7 @@ export default function PendingResolutionPanel({ pending }: Props) {
           </div>
         ) : (
           items.map((tx) => {
-            const raw = tx.transaction_date ?? tx.created_at
-            const dateStr = raw
-              ? new Date(raw.includes('T') ? raw : raw + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
-              : '—'
+            const dateStr = formatTxDateTime(tx.transaction_date ?? tx.created_at)
             return (
               <div
                 key={tx.id}

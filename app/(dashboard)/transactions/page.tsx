@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import type { Transaction, TransactionStatus } from '@/lib/supabase/types'
+import { formatTxDateTime } from '@/lib/format'
 
 const statusConfig: Record<TransactionStatus, { label: string; className: string }> = {
   processed: { label: 'Procesado', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
@@ -117,10 +118,7 @@ export default async function TransactionsPage({
             ) : (
               transactions.map((tx) => {
                 const cfg = statusConfig[tx.status] ?? statusConfig.pending
-                const raw = tx.transaction_date ?? tx.created_at
-                const dateStr = raw
-                  ? new Date(raw).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '—'
+                const dateStr = formatTxDateTime(tx.transaction_date ?? tx.created_at)
                 return (
                   <tr key={tx.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">#{tx.invoice_id}</td>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import CustomerSearch from './CustomerSearch'
+import { formatTxDateTime } from '@/lib/format'
 import type { Redemption } from '@/lib/supabase/types'
 
 interface Props {
@@ -74,7 +75,7 @@ function RedemptionHistory({ redemptions }: { redemptions: Redemption[] }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       {redemptions.map((r) => {
-        const ago = new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+        const ago = formatTxDateTime(r.created_at)
         const statusClass =
           r.status === 'confirmed'
             ? 'text-emerald-400 bg-emerald-400/10'

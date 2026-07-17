@@ -85,7 +85,7 @@ export default async function StatsCards() {
       <Card
         label="Última sync N8N"
         value={lastSync}
-        sub="actualiza cada ~2 min"
+        sub="actualiza cada ~20 min"
         color="blue"
       />
     </div>
