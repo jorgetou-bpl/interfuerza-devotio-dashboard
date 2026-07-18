@@ -1,0 +1,1132 @@
+{
+  "name": "InterFuerza × Devotio Rewards — Cashback Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/20 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Cada 20 Minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/sync_state?key=in.(last_processed_at,cashback_percentage)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-last-sync",
+      "name": "Leer Sync State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "_comment": "fetch both keys in one call"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst syncRow = items.find(i => i.json.key === 'last_processed_at')?.json;\nconst pctRow = items.find(i => i.json.key === 'cashback_percentage')?.json;\nconst lastSyncRaw = syncRow?.value || new Date(Date.now() - 5 * 60 * 1000).toISOString();\nconst cashbackPct = parseFloat(pctRow?.value || '2');\nconst lastDate = new Date(lastSyncRaw);\nconst now = new Date();\nconst fromDate = lastDate.toISOString().split('T')[0];\nconst toDate = now.toISOString().split('T')[0];\nreturn [{ json: { fromDate, toDate, lastSyncISO: lastDate.toISOString(), cashbackPct } }];"
+      },
+      "id": "node-calc-dates",
+      "name": "Calcular Rango de Fechas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.interfuerza.com/api/v4/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-ifx-token",
+              "value": "=59c05db87d76898f1695de860f3e3ebf-bxcc-hyxiybow"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "class",
+              "value": "GET"
+            },
+            {
+              "name": "action",
+              "value": "invoices"
+            },
+            {
+              "name": "token",
+              "value": "59c05db87d76898f1695de860f3e3ebf-bxcc-hyxiybow"
+            },
+            {
+              "name": "page",
+              "value": "={{ $json.lastPage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-invoices",
+      "name": "Obtener Facturas InterFuerza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\n// La API devuelve { data: \"<JSON string>\" } — hay que parsear el string\nlet parsed;\ntry {\n  parsed = typeof raw.data === 'string' ? JSON.parse(raw.data) : (raw.data || raw);\n} catch (e) {\n  return [];\n}\n\n// Las facturas vienen bajo la key 'invoices', cada una con { Invoice: {...}, Lines: [...] }\nconst invoices = parsed.invoices || [];\nif (!Array.isArray(invoices) || invoices.length === 0) return [];\n\nreturn invoices.map(item => ({\n  json: {\n    ...item.Invoice,\n    Lines: item.Lines || []\n  }\n}));"
+      },
+      "id": "node-normalize",
+      "name": "Normalizar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "node-if-invoices",
+      "name": "¿Hay Facturas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Colapsa todos los items de facturas en un solo item para que\n// el request a Supabase se haga UNA SOLA VEZ, no N veces.\nconst invoices = $input.all().map(i => i.json);\nreturn [{ json: { invoices } }];"
+      },
+      "id": "node-prep-dedup",
+      "name": "Preparar Dedup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/transactions?select=invoice_id&created_at=gte.{{ new Date(Date.now() - 24*60*60*1000).toISOString() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "node-get-processed",
+      "name": "IDs Ya Procesados (Dedup)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Con fullResponse:true siempre recibimos 1 item aunque Supabase devuelva []\nconst supabaseResp = $input.first().json;\nconst rows = Array.isArray(supabaseResp.body) ? supabaseResp.body\n           : Array.isArray(supabaseResp) ? supabaseResp\n           : [];\nconst processedIds = new Set(rows.map(r => String(r.invoice_id)));\n\nconst fromDate = $('Calcular Rango de Fechas').first().json.fromDate || '2000-01-01';\n\nconst allInvoices = $('Preparar Dedup').first().json.invoices || [];\nconst newInvoices = allInvoices.filter(inv => {\n  const id = String(inv.id || inv.Id || inv.invoice_id || '');\n  if (!id || processedIds.has(id)) return false;\n  const type = String(inv.Type || '').toUpperCase();\n  if (type === 'INIT-BALANCE') return false;\n  if (String(inv.Date || '') < fromDate) return false;\n  return true;\n});\nreturn newInvoices.map(inv => ({ json: inv }));"
+      },
+      "id": "node-filter-dupes",
+      "name": "Filtrar Duplicados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.interfuerza.com/api/v4/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-ifx-token",
+              "value": "=59c05db87d76898f1695de860f3e3ebf-bxcc-hyxiybow"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ class: 'GET', action: 'customer', id: $json.Cliente || $json.cliente || '' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-get-customer",
+      "name": "Obtener Cliente InterFuerza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const inv = $input.item.json;\n\nlet customer = {};\ntry {\n  const parsed = typeof inv.data === 'string' ? JSON.parse(inv.data) : (inv.data || {});\n  customer = parsed.customer || {};\n} catch(e) {}\n\nlet rawPhone = String(customer.Telefono_1 || customer.Cellular || '').replace(/\\D/g, '');\nlet phone = '';\nif (rawPhone.length === 8) {\n  phone = '507' + rawPhone;\n} else if (rawPhone.startsWith('507') && rawPhone.length === 11) {\n  phone = rawPhone;\n} else if (rawPhone.length > 0) {\n  phone = rawPhone;\n}\n\nconst email = String(customer.Email || '').trim();\n\nreturn { json: {\n  ...inv,\n  data: undefined,\n  _phone: phone,\n  _email: email,\n  _customerName: customer.Nombre || inv.Nombre || inv.Cliente || '',\n  _clienteId: inv.Cliente || inv.cliente || '',\n  _searchQuery: phone || email\n}};"
+      },
+      "id": "node-extract-contact",
+      "name": "Extraer Contacto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.digitalwallet.cards/api/v2/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "=c036be74cc8a14502b30c01fbf266045"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json._phone }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-search-devotio",
+      "name": "Buscar Cliente en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.digitalwallet.cards/api/v2/cards",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "=c036be74cc8a14502b30c01fbf266045"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "customerId",
+              "value": "={{ $json.data[0].id }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-get-card",
+      "name": "Obtener Tarjeta del Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "card-exists",
+              "leftValue": "={{ Array.isArray($json.data) ? $json.data.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "node-if-customer",
+      "name": "¿Cliente en Devotio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst cardData = $('Obtener Tarjeta del Cliente').item.json;\nconst card = cardData.data[0];\nconst devotioCustomerId = card.customerId || '';\n\n// Código de producto de envío en InterFuerza — completar cuando el cliente confirme\nconst SHIPPING_CODE = ''; // ej: 'PS_ENVIO' o 'SHIP001'\n\n// Base: SubTotal (sin ITBMS). Si hay código de envío, se resta del SubTotal.\nconst lines = Array.isArray(inv.Lines) ? inv.Lines : [];\nlet amount;\nif (SHIPPING_CODE && lines.length > 0) {\n  const shippingTotal = lines\n    .filter(l => l.Codigo === SHIPPING_CODE)\n    .reduce((sum, l) => sum + parseFloat(l.Total || 0), 0);\n  amount = parseFloat((parseFloat(inv.SubTotal || 0) - shippingTotal).toFixed(2));\n} else {\n  amount = parseFloat(inv.SubTotal || 0);\n}\n\nconst pct = parseFloat($('Calcular Rango de Fechas').first().json.cashbackPct || '2');\nconst cashbackAmount = parseFloat((amount * pct / 100).toFixed(2));\n\nreturn [{ json: {\n  invoiceId: String(inv.id || inv.Id || ''),\n  amount,\n  cashbackAmount,\n  cashbackPct: pct,\n  branch: inv.Bodega || inv.bodega || '',\n  txDate: inv.Date || inv.date || new Date().toISOString(),\n  customerName: inv._customerName || '',\n  customerPhone: inv._phone || '',\n  customerEmail: inv._email || '',\n  devotioCustomerId,\n  cardId: card.id\n} }];"
+      },
+      "id": "node-calc-cashback",
+      "name": "Calcular Cashback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.digitalwallet.cards/api/v2/cards/{{ $json.cardId }}/add-point",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "=c036be74cc8a14502b30c01fbf266045"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.cashbackAmount, purchaseSum: $json.amount, comment: 'Factura #' + $json.invoiceId }) }}",
+        "options": {}
+      },
+      "id": "node-register-cashback",
+      "name": "Registrar Cashback en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4000,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/transactions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Calcular Cashback').item.json.invoiceId, customer_name: $('Calcular Cashback').item.json.customerName, customer_phone: $('Calcular Cashback').item.json.customerPhone, customer_email: $('Calcular Cashback').item.json.customerEmail, amount: $('Calcular Cashback').item.json.amount, cashback_amount: $('Calcular Cashback').item.json.cashbackAmount, cashback_pct: $('Calcular Cashback').item.json.cashbackPct, branch: $('Calcular Cashback').item.json.branch, transaction_date: $('Calcular Cashback').item.json.txDate, status: 'processed', devotio_customer_id: $('Calcular Cashback').item.json.devotioCustomerId, devotio_card_id: $('Calcular Cashback').item.json.cardId }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-insert-processed",
+      "name": "Guardar Procesado en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const inv = $('Extraer Contacto').item.json;\nconst amount = parseFloat(inv.Total || inv.total || inv.Monto || 0);\nreturn { json: {\n  invoice_id: String(inv.id || inv.Id || ''),\n  customer_name: inv._customerName || null,\n  customer_phone: inv._phone || null,\n  customer_email: inv._email || null,\n  amount,\n  branch: inv.Bodega || inv.bodega || null,\n  transaction_date: inv.Date || inv.date || new Date().toISOString(),\n  status: 'pending'\n} };"
+      },
+      "id": "node-prep-pending",
+      "name": "Preparar Pendiente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/transactions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-insert-pending",
+      "name": "Guardar Pendiente en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4000,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/sync_state?key=eq.last_processed_at",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ value: new Date().toISOString(), updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "node-update-sync",
+      "name": "Actualizar last_processed_at",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4440,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "phone-found",
+              "leftValue": "={{ Array.isArray($json.data) ? $json.data.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "phone-non-empty",
+              "leftValue": "={{ $('Extraer Contacto').item.json._phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-phone-found",
+      "name": "¿Encontrado por Teléfono?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.digitalwallet.cards/api/v2/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "=c036be74cc8a14502b30c01fbf266045"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $('Extraer Contacto').item.json._email }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-search-email",
+      "name": "Buscar por Email en Devotio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "email-found",
+              "leftValue": "={{ Array.isArray($json.data) ? $json.data.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "email-non-empty",
+              "leftValue": "={{ $('Extraer Contacto').item.json._email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-email-found",
+      "name": "¿Encontrado por Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3320,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.interfuerza.com/api/v4/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-ifx-token",
+              "value": "=59c05db87d76898f1695de860f3e3ebf-bxcc-hyxiybow"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={ \"class\": \"GET\", \"action\": \"invoices\", \"token\": \"59c05db87d76898f1695de860f3e3ebf-bxcc-hyxiybow\", \"page\": \"1\" }",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-get-count",
+      "name": "Obtener Count InterFuerza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nlet parsed;\ntry { parsed = typeof raw.data === 'string' ? JSON.parse(raw.data) : (raw.data || raw); } catch(e) { return [{ json: { error: String(e) } }]; }\nconst count = parseInt(parsed.count || '0');\nif (!count) return [{ json: { error: 'count no disponible', raw: parsed } }];\nconst lastPage = Math.ceil(count / 25);\nreturn [{ json: { lastPage: String(lastPage), count_total: count } }];"
+      },
+      "id": "node-calc-last-page",
+      "name": "Calcular Última Página",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "options": {},
+        "combineBy": "combineByPosition"
+      },
+      "id": "0f18311d-288b-459d-9e02-5c794b2b0dd3",
+      "name": "Combinar Invoice y Cliente",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://bswhqfzuxkrjboapcidm.supabase.co/rest/v1/sync_state?key=eq.last_processed_at",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzd2hxZnp1eGtyamJvYXBjaWRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mzk4Mzk4OSwiZXhwIjoyMDk5NTU5OTg5fQ.iHeeYqY18EfjA1i3O4mGxT3b0BCTp4iE9dkbIXPVgiw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ value: new Date().toISOString(), updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "node-update-sync-always",
+      "name": "Actualizar Sync Siempre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Cada 20 Minutos": {
+      "main": [
+        [
+          {
+            "node": "Leer Sync State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Sync State": {
+      "main": [
+        [
+          {
+            "node": "Calcular Rango de Fechas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Rango de Fechas": {
+      "main": [
+        [
+          {
+            "node": "Obtener Count InterFuerza",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Actualizar Sync Siempre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Count InterFuerza": {
+      "main": [
+        [
+          {
+            "node": "Calcular Última Página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Última Página": {
+      "main": [
+        [
+          {
+            "node": "Obtener Facturas InterFuerza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Facturas InterFuerza": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Hay Facturas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay Facturas?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dedup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Preparar Dedup": {
+      "main": [
+        [
+          {
+            "node": "IDs Ya Procesados (Dedup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IDs Ya Procesados (Dedup)": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Duplicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Duplicados": {
+      "main": [
+        [
+          {
+            "node": "Obtener Cliente InterFuerza",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combinar Invoice y Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Cliente InterFuerza": {
+      "main": [
+        [
+          {
+            "node": "Combinar Invoice y Cliente",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extraer Contacto": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Tarjeta del Cliente": {
+      "main": [
+        [
+          {
+            "node": "¿Cliente en Devotio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cliente en Devotio?": {
+      "main": [
+        [
+          {
+            "node": "Calcular Cashback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Cashback": {
+      "main": [
+        [
+          {
+            "node": "Registrar Cashback en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Cashback en Devotio": {
+      "main": [
+        [
+          {
+            "node": "Guardar Procesado en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Procesado en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Actualizar last_processed_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Pendiente": {
+      "main": [
+        [
+          {
+            "node": "Guardar Pendiente en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Pendiente en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Actualizar last_processed_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente en Devotio": {
+      "main": [
+        [
+          {
+            "node": "¿Encontrado por Teléfono?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Encontrado por Teléfono?": {
+      "main": [
+        [
+          {
+            "node": "Obtener Tarjeta del Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar por Email en Devotio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar por Email en Devotio": {
+      "main": [
+        [
+          {
+            "node": "¿Encontrado por Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Encontrado por Email?": {
+      "main": [
+        [
+          {
+            "node": "Obtener Tarjeta del Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar Invoice y Cliente": {
+      "main": [
+        [
+          {
+            "node": "Extraer Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": "interfuerza-devotio-v2"
+  },
+  "pinData": {},
+  "versionId": "3",
+  "triggerCount": 1,
+  "tags": [
+    {
+      "id": "tag-devotio",
+      "name": "devotio-rewards"
+    },
+    {
+      "id": "tag-interfuerza",
+      "name": "interfuerza"
+    }
+  ]
+}
