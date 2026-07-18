@@ -585,7 +585,7 @@
     <h1>Dashboard de Cashback<br>InterFuerza × Devotio</h1>
     <p class="cover-sub">Manual de operación para gerentes y cajeros</p>
     <div class="cover-meta">
-      <div class="cover-meta-item"><strong>Versión</strong>1.0</div>
+      <div class="cover-meta-item"><strong>Versión</strong>1.1</div>
       <div class="cover-meta-item"><strong>Idioma</strong>Español</div>
       <div class="cover-meta-item"><strong>Audiencia</strong>Gerentes y cajeros</div>
     </div>
@@ -602,6 +602,7 @@
       <li><a href="#historial">Historial de transacciones</a></li>
       <li><a href="#configuracion">Configuración</a></li>
       <li><a href="#pendientes">Resolver pendientes</a></li>
+      <li><a href="#exportar">Exportar transacciones</a></li>
       <li><a href="#faq">Preguntas frecuentes</a></li>
     </ol>
   </nav>
@@ -714,8 +715,8 @@
             <span class="stat-lbl">Sin match</span>
           </div>
           <div class="stat-box">
-            <span class="stat-val">hace 4 min</span>
-            <span class="stat-lbl">Última sincronización</span>
+            <span class="stat-val" style="font-size:13px;line-height:1.2">17 jul,<br>3:40 PM</span>
+            <span class="stat-lbl">Última sync N8N</span>
           </div>
         </div>
         <div class="feed-item">
@@ -762,13 +763,16 @@
         <span class="step-n" style="background:var(--c-amber);border-radius:4px;width:auto;height:auto;padding:2px 8px;font-size:11px;margin-top:4px">!</span>
         <div class="step-body">
           <strong>Sin match</strong>
-          <p>Facturas donde el sistema no encontró al cliente en Devotio. Requieren resolución manual en Configuración.</p>
+          <p>Facturas donde el sistema no encontró al cliente en Devotio. Pueden resolverse directamente desde la tabla de Transacciones.</p>
         </div>
       </div>
     </div>
 
     <h3>Feed en tiempo real</h3>
     <p>La lista de transacciones se actualiza automáticamente sin necesidad de recargar la página. Cada nueva factura procesada aparece en la parte superior con un badge verde (<span class="badge badge-ok">Procesado</span>) o amarillo (<span class="badge badge-pending">Pendiente</span>).</p>
+
+    <h3>Última sincronización</h3>
+    <p>El cuarto indicador muestra la fecha y hora exacta (en hora de Panamá) del último ciclo de N8N. Se actualiza en cada ejecución, sin importar si hubo facturas nuevas o no.</p>
   </section>
 
   <!-- 4. Canjear Cashback -->
@@ -814,7 +818,7 @@
         <span class="step-n">2</span>
         <div class="step-body">
           <strong>Buscar en el dashboard</strong>
-          <p>Escribir el teléfono (con prefijo 507), correo, o nombre del cliente en el campo de búsqueda y presionar <strong>Buscar</strong>.</p>
+          <p>Escribir el teléfono (con o sin prefijo 507), correo electrónico, o <strong>nombre</strong> del cliente en el campo de búsqueda y presionar <strong>Buscar</strong>. Si hay varios resultados con el mismo nombre, se mostrarán todos para que elija el correcto.</p>
         </div>
       </div>
       <div class="step">
@@ -862,6 +866,9 @@
 
     <p>Muestra todas las facturas procesadas por el sistema, con la opción de filtrar por fecha, sucursal o estado. Se accede desde el menú lateral en <strong>Transacciones</strong>.</p>
 
+    <h3>Filtros disponibles</h3>
+    <p>Puede filtrar por texto (nombre de cliente, teléfono o número de factura), por estado (Todos / Procesado / Pendiente / Error), y por sucursal. Los filtros se combinan entre sí.</p>
+
     <h3>Estados de una transacción</h3>
     <div class="steps">
       <div class="step">
@@ -873,14 +880,14 @@
       <div class="step">
         <span class="badge badge-pending" style="margin-top:6px;flex-shrink:0">Pendiente</span>
         <div class="step-body">
-          <p>El sistema no pudo identificar al cliente en Devotio. Requiere resolución manual desde Configuración.</p>
+          <p>El sistema no pudo identificar al cliente en Devotio. En la columna de estado aparece el botón <strong>Resolver →</strong> para gestionarlo directamente desde esta tabla.</p>
         </div>
       </div>
     </div>
 
     <div class="note">
       <strong>Para el gerente</strong>
-      Este historial sirve como registro de auditoría. Puede exportar la vista del navegador o tomar capturas para reportes mensuales.
+      Las fechas mostradas corresponden a la fecha real de la factura en InterFuerza, no a la hora en que fue sincronizada. Esto garantiza que el historial refleja cuándo ocurrió la transacción.
     </div>
   </section>
 
@@ -923,7 +930,10 @@
     </div>
 
     <h3>Estado de la sincronización</h3>
-    <p>En la misma pantalla aparece la fecha y hora de la última sincronización con InterFuerza, y la frecuencia configurada (cada 20 minutos).</p>
+    <p>En la misma pantalla aparece la fecha y hora de la última sincronización con InterFuerza (en hora de Panamá) y la frecuencia configurada (cada 20 minutos).</p>
+
+    <h3>Transacciones sin match</h3>
+    <p>La pantalla de Configuración muestra un resumen del total de facturas pendientes de resolver. Desde ahí puede ir directamente a la tabla de Transacciones filtrada para resolverlas. El botón <strong>Ver y resolver →</strong> aparece cuando hay al menos una pendiente.</p>
   </section>
 
   <!-- 7. Resolver Pendientes -->
@@ -933,56 +943,95 @@
       <h2>Resolver Transacciones Pendientes</h2>
     </div>
 
-    <p>Cuando el sistema no puede identificar a un cliente en Devotio — porque el número de teléfono o correo no coincide exactamente — la factura queda marcada como <span class="badge badge-pending">Pendiente</span>. El gerente puede resolverla manualmente desde Configuración.</p>
+    <p>Cuando el sistema no puede identificar a un cliente en Devotio — porque el número de teléfono o correo no coincide exactamente — la factura queda marcada como <span class="badge badge-pending">Pendiente</span>. El gerente puede resolverla manualmente directamente desde la tabla de <strong>Transacciones</strong>, sin necesidad de cambiar de pantalla.</p>
 
     <div class="steps">
       <div class="step">
         <span class="step-n">1</span>
         <div class="step-body">
-          <strong>Ir a Configuración → "Transacciones pendientes"</strong>
-          <p>La lista muestra nombre del cliente de InterFuerza, número de factura y monto.</p>
+          <strong>Ir a Transacciones en el menú lateral</strong>
+          <p>Las filas con estado <span class="badge badge-pending">Pendiente</span> muestran el botón <strong>Resolver →</strong> en la columna de estado. También puede filtrar por estado "Pendiente" para verlas todas juntas.</p>
         </div>
       </div>
       <div class="step">
         <span class="step-n">2</span>
         <div class="step-body">
           <strong>Click en "Resolver →" en la fila correspondiente</strong>
-          <p>Se abre un panel con los datos del cliente según InterFuerza.</p>
+          <p>Se abre un panel con los datos del cliente según InterFuerza: nombre, teléfono y correo.</p>
         </div>
       </div>
       <div class="step">
         <span class="step-n">3</span>
         <div class="step-body">
           <strong>Buscar al cliente en Devotio</strong>
-          <p>Escribir el nombre, teléfono o correo del cliente en el campo de búsqueda. Aparecerán los resultados de Devotio.</p>
+          <p>Escribir el nombre, teléfono o correo en el campo de búsqueda del panel. Aparecen los resultados de Devotio con nombre, teléfono y saldo actual.</p>
         </div>
       </div>
       <div class="step">
         <span class="step-n">4</span>
         <div class="step-body">
           <strong>Seleccionar el cliente correcto</strong>
-          <p>Confirmar que el nombre y contacto coinciden con el cliente de InterFuerza.</p>
+          <p>Verificar que el nombre y contacto coincidan con los datos de InterFuerza y hacer click en <strong>Seleccionar</strong>.</p>
         </div>
       </div>
       <div class="step">
         <span class="step-n">5</span>
         <div class="step-body">
-          <strong>Click en "Confirmar ✓"</strong>
-          <p>El cashback se acredita en la tarjeta seleccionada, la fila desaparece del panel y la transacción queda como <span class="badge badge-ok">Procesado</span>.</p>
+          <strong>Confirmar la acreditación</strong>
+          <p>El panel muestra un resumen: "Acreditar $X.XX a [Nombre]". Click en <strong>Confirmar ✓</strong>. El cashback se acredita en la tarjeta y la fila pasa a <span class="badge badge-ok">Procesado</span> sin recargar la página.</p>
         </div>
       </div>
     </div>
 
     <div class="note">
       <strong>Cuándo ocurren los pendientes</strong>
-      Sucede cuando el cliente tiene un número diferente en InterFuerza y en Devotio, o si aún no tiene tarjeta Devotio activa. El sistema intenta buscar también por correo electrónico antes de marcarla como pendiente.
+      Sucede cuando el cliente tiene un número diferente en InterFuerza y en Devotio, o si aún no tiene tarjeta Devotio activa. El sistema intenta buscar por teléfono y por correo electrónico antes de marcarla como pendiente. A medida que más clientes se registren en Devotio, la cantidad de pendientes irá disminuyendo.
     </div>
   </section>
 
-  <!-- 8. FAQ -->
-  <section class="section" id="faq">
+  <!-- 8. Exportar CSV -->
+  <section class="section" id="exportar">
     <div class="section-head">
       <span class="section-num" aria-hidden="true">8</span>
+      <h2>Exportar Transacciones</h2>
+    </div>
+
+    <p>Desde la pantalla de <strong>Transacciones</strong> puede descargar un archivo CSV con todos los registros que coincidan con los filtros aplicados. Es útil para reportes mensuales o análisis externos.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-n">1</span>
+        <div class="step-body">
+          <strong>Aplicar los filtros deseados (opcional)</strong>
+          <p>Si quiere exportar solo un estado, sucursal o rango de búsqueda específico, configure los filtros primero y presione <strong>Filtrar</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">2</span>
+        <div class="step-body">
+          <strong>Click en "Exportar CSV"</strong>
+          <p>El botón está en la esquina superior derecha de la pantalla. Se descarga automáticamente un archivo con nombre <code>transacciones_YYYY-MM-DD.csv</code>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">3</span>
+        <div class="step-body">
+          <strong>Abrir en Excel u hoja de cálculo</strong>
+          <p>El archivo incluye: Factura, Cliente, Teléfono, Email, Monto, Cashback, % Cashback, Sucursal, Fecha Factura y Estado.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Sin límite de filas</strong>
+      El CSV exporta <em>todas</em> las transacciones que coinciden con el filtro, no solo la página visible. Si no aplica ningún filtro, exporta el historial completo.
+    </div>
+  </section>
+
+  <!-- 9. FAQ -->
+  <section class="section" id="faq">
+    <div class="section-head">
+      <span class="section-num" aria-hidden="true">9</span>
       <h2>Preguntas Frecuentes</h2>
     </div>
 
@@ -993,7 +1042,7 @@
       </div>
       <div class="faq-item">
         <p class="faq-q">Un cliente dice que no ve su cashback en Devotio. ¿Qué hago?</p>
-        <p class="faq-a">Primero, verificar en Historial de Transacciones que la factura fue procesada. Si aparece como <span class="badge badge-pending">Pendiente</span>, ir a Configuración y resolver la transacción manualmente. Si no aparece, puede ser que aún no ha pasado el ciclo de 20 minutos.</p>
+        <p class="faq-a">Primero, verificar en Transacciones que la factura fue procesada buscando por nombre o teléfono del cliente. Si aparece como <span class="badge badge-pending">Pendiente</span>, hacer click en <strong>Resolver →</strong> en esa misma fila para acreditarla manualmente. Si la factura no aparece, puede ser que aún no ha pasado el ciclo de 20 minutos — revisar la hora de "Última sync" en la Vista General.</p>
       </div>
       <div class="faq-item">
         <p class="faq-q">Confirmé un canje por error. ¿Se puede revertir?</p>
@@ -1001,7 +1050,11 @@
       </div>
       <div class="faq-item">
         <p class="faq-q">¿Qué pasa si busco a un cliente y no aparece en Canjear Cashback?</p>
-        <p class="faq-a">El cliente puede no estar registrado en Devotio Rewards todavía, o puede tener un teléfono o correo diferente. Intentar buscar por nombre. Si tampoco aparece, el cliente debe registrarse en Devotio primero.</p>
+        <p class="faq-a">Intentar las tres opciones: teléfono, correo y nombre. Si la búsqueda por nombre devuelve varios resultados, se mostrarán todos para que elija. Si el cliente no aparece por ningún medio, significa que aún no tiene tarjeta Devotio activa y debe registrarse primero.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">¿Puedo descargar el historial de transacciones?</p>
+        <p class="faq-a">Sí. En la pantalla de Transacciones hay un botón <strong>Exportar CSV</strong> en la esquina superior derecha. El archivo descargado incluye todas las transacciones con los filtros activos en ese momento, sin límite de registros. Abre directamente en Excel.</p>
       </div>
       <div class="faq-item">
         <p class="faq-q">¿El cliente necesita mostrar algo para canjear?</p>
@@ -1019,7 +1072,7 @@
   </section>
 
   <footer class="footer">
-    <span>Dashboard InterFuerza × Devotio — Guía de Usuario v1.0</span>
+    <span>Dashboard InterFuerza × Devotio — Guía de Usuario v1.1</span>
     <span>Para soporte, contactar al administrador del sistema.</span>
   </footer>
 
