@@ -1,13 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { Badge } from '@/components/ui/badge'
-import type { Transaction, TransactionStatus } from '@/lib/supabase/types'
-import { formatTxDateTime } from '@/lib/format'
-
-const statusConfig: Record<TransactionStatus, { label: string; className: string }> = {
-  processed: { label: 'Procesado', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-  pending: { label: 'Pendiente', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  error: { label: 'Error', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
-}
+import type { Transaction } from '@/lib/supabase/types'
+import TransactionsTable from '@/components/transactions/TransactionsTable'
 
 interface SearchParams {
   status?: string
@@ -56,99 +49,63 @@ export default async function TransactionsPage({
         <p className="text-gray-500 text-sm mt-0.5">{count ?? 0} registros totales</p>
       </div>
 
-      <form method="GET" className="flex gap-3 flex-wrap">
-        <input
-          name="q"
-          defaultValue={params.q}
-          placeholder="Buscar cliente, teléfono o factura..."
-          className="flex-1 min-w-52 bg-gray-900 border border-gray-700 text-white placeholder-gray-500 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
-        />
-        <select
-          name="status"
-          defaultValue={params.status ?? 'all'}
-          className="bg-gray-900 border border-gray-700 text-white text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
-        >
-          <option value="all">Todos los estados</option>
-          <option value="processed">Procesado</option>
-          <option value="pending">Pendiente</option>
-          <option value="error">Error</option>
-        </select>
-        <input
-          name="branch"
-          defaultValue={params.branch}
-          placeholder="Sucursal..."
-          className="bg-gray-900 border border-gray-700 text-white placeholder-gray-500 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
-        />
-        <button
-          type="submit"
-          className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-md transition-colors"
-        >
-          Filtrar
-        </button>
-        {(params.q || params.status || params.branch) && (
-          <a
-            href="/transactions"
-            className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-md border border-gray-700 transition-colors"
+      <div className="flex gap-3 flex-wrap items-start">
+        <form method="GET" className="flex gap-3 flex-wrap flex-1">
+          <input
+            name="q"
+            defaultValue={params.q}
+            placeholder="Buscar cliente, teléfono o factura..."
+            className="flex-1 min-w-52 bg-gray-900 border border-gray-700 text-white placeholder-gray-500 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
+          />
+          <select
+            name="status"
+            defaultValue={params.status ?? 'all'}
+            className="bg-gray-900 border border-gray-700 text-white text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
           >
-            Limpiar
-          </a>
-        )}
-      </form>
+            <option value="all">Todos los estados</option>
+            <option value="processed">Procesado</option>
+            <option value="pending">Pendiente</option>
+            <option value="error">Error</option>
+          </select>
+          <input
+            name="branch"
+            defaultValue={params.branch}
+            placeholder="Sucursal..."
+            className="bg-gray-900 border border-gray-700 text-white placeholder-gray-500 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            type="submit"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-md transition-colors"
+          >
+            Filtrar
+          </button>
+          {(params.q || params.status || params.branch) && (
+            <a
+              href="/transactions"
+              className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-md border border-gray-700 transition-colors"
+            >
+              Limpiar
+            </a>
+          )}
+        </form>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Factura</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Cliente</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Monto</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Cashback</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Sucursal</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Fecha</th>
-              <th className="text-left text-gray-500 text-xs uppercase tracking-wide px-4 py-3">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
-                  No hay transacciones con esos filtros.
-                </td>
-              </tr>
-            ) : (
-              transactions.map((tx) => {
-                const cfg = statusConfig[tx.status] ?? statusConfig.pending
-                const dateStr = formatTxDateTime(tx.transaction_date ?? tx.created_at)
-                return (
-                  <tr key={tx.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-gray-400 font-mono text-xs">#{tx.invoice_id}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-white">{tx.customer_name ?? '—'}</p>
-                      {tx.customer_phone && (
-                        <p className="text-gray-500 text-xs">{tx.customer_phone}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-white font-semibold">${Number(tx.amount).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-emerald-400">
-                      {tx.cashback_amount != null && tx.cashback_amount > 0
-                        ? `+$${Number(tx.cashback_amount).toFixed(2)}`
-                        : <span className="text-gray-600">—</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 text-gray-400">{tx.branch ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{dateStr}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className={`text-xs ${cfg.className}`}>
-                        {cfg.label}
-                      </Badge>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+        <a
+          href={`/api/transactions/export?${new URLSearchParams({
+            ...(params.status && params.status !== 'all' ? { status: params.status } : {}),
+            ...(params.branch ? { branch: params.branch } : {}),
+            ...(params.q ? { q: params.q } : {}),
+          })}`}
+          download
+          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-md border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors whitespace-nowrap"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Exportar CSV
+        </a>
       </div>
+
+      <TransactionsTable transactions={transactions} />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
