@@ -19,9 +19,13 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
   const [showConfirm, setShowConfirm] = useState(false)
 
   const lastSyncFormatted = lastSync
-    ? new Date(lastSync).toLocaleString('es-AR', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
+    ? new Date(lastSync).toLocaleString('es', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Panama',
       })
     : 'Sin datos'
 
@@ -83,7 +87,7 @@ export default function SettingsForm({ cashbackPct, lastSync }: SettingsFormProp
             </Button>
           </div>
           <p className="text-gray-500 text-xs">
-            Cada factura procesada acredita este % del monto total como cashback.
+            Cada factura procesada acredita este % del subtotal (sin impuestos) como cashback.
             Los cambios aplican solo a facturas futuras.
           </p>
         </div>
