@@ -29,15 +29,18 @@ function Card({ label, value, sub, color }: StatCard) {
 export default async function StatsCards() {
   const supabase = await createClient()
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayISO = today.toISOString()
+  // Today's date in Panama timezone (UTC-5, no DST).
+  // InterFuerza stores invoice dates as date-only strings → Supabase saves them as midnight UTC
+  // e.g. "2026-07-17" → "2026-07-17T00:00:00.000Z". Filtering gte that ISO value gives all
+  // invoices dated today regardless of when N8N synced them.
+  const panamaDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Panama' })
+  const todayISO = `${panamaDate}T00:00:00.000Z`
 
   const [todayResult, pendingResult, syncResult] = await Promise.all([
     supabase
       .from('transactions')
       .select('amount, cashback_amount, status')
-      .gte('created_at', todayISO),
+      .gte('transaction_date', todayISO),
     supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
@@ -73,7 +76,7 @@ export default async function StatsCards() {
       <Card
         label="Transacciones hoy"
         value={String(txCount)}
-        sub="desde las 00:00"
+        sub={`${panamaDate} · hora Panamá`}
         color="blue"
       />
       <Card
