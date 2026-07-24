@@ -1,5 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 
+interface StatsCardsProps {
+  from: string
+  to: string
+  periodLabel: string
+}
+
 interface StatCard {
   label: string
   value: string
@@ -26,25 +32,24 @@ function Card({ label, value, sub, color }: StatCard) {
   )
 }
 
-export default async function StatsCards() {
+export default async function StatsCards({ from, to, periodLabel }: StatsCardsProps) {
   const supabase = await createClient()
 
-  // Today's date in Panama timezone (UTC-5, no DST).
-  // InterFuerza stores invoice dates as date-only strings → Supabase saves them as midnight UTC
-  // e.g. "2026-07-17" → "2026-07-17T00:00:00.000Z". Filtering gte that ISO value gives all
-  // invoices dated today regardless of when N8N synced them.
-  const panamaDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Panama' })
-  const todayISO = `${panamaDate}T00:00:00.000Z`
+  const fromISO = `${from}T00:00:00.000Z`
+  const toISO = `${to}T23:59:59.999Z`
 
-  const [todayResult, pendingResult, syncResult] = await Promise.all([
+  const [periodResult, pendingResult, syncResult] = await Promise.all([
     supabase
       .from('transactions')
       .select('amount, cashback_amount, status')
-      .gte('transaction_date', todayISO),
+      .gte('transaction_date', fromISO)
+      .lte('transaction_date', toISO),
     supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .eq('status', 'pending')
+      .gte('transaction_date', fromISO)
+      .lte('transaction_date', toISO),
     supabase
       .from('sync_state')
       .select('value')
@@ -53,13 +58,12 @@ export default async function StatsCards() {
   ])
 
   type TxRow = { amount: number; cashback_amount: number | null; status: string }
-  const todayTx = (todayResult.data ?? []) as TxRow[]
+  const txRows = (periodResult.data ?? []) as TxRow[]
   const pendingCount = pendingResult.count ?? 0
   const syncValue = (syncResult.data as { value: string } | null)?.value
 
-  const processed = todayTx.filter((t) => t.status === 'processed')
+  const processed = txRows.filter((t) => t.status === 'processed')
   const totalCashback = processed.reduce((sum, t) => sum + (t.cashback_amount ?? 0), 0)
-  const txCount = todayTx.length
 
   const lastSync = syncValue
     ? new Date(syncValue).toLocaleString('es', {
@@ -71,24 +75,26 @@ export default async function StatsCards() {
       })
     : '—'
 
+  const rangeLabel = from === to ? from : `${from} → ${to}`
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card
-        label="Transacciones hoy"
-        value={String(txCount)}
-        sub={`${panamaDate} · hora Panamá`}
+        label="Transacciones"
+        value={String(txRows.length)}
+        sub={periodLabel}
         color="blue"
       />
       <Card
         label="Cashback acreditado"
         value={`$${totalCashback.toFixed(2)}`}
-        sub="hoy"
+        sub={periodLabel}
         color="emerald"
       />
       <Card
         label="Sin match Devotio"
         value={String(pendingCount)}
-        sub="clientes no registrados"
+        sub={rangeLabel}
         color="amber"
       />
       <Card

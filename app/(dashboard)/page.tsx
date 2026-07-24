@@ -1,8 +1,46 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import StatsCards from '@/components/stats/StatsCards'
+import PeriodFilter from '@/components/stats/PeriodFilter'
 import LiveFeed from '@/components/live-feed/LiveFeed'
 import type { Transaction } from '@/lib/supabase/types'
+
+type SearchParams = Promise<{ period?: string; from?: string; to?: string }>
+
+function getPeriodRange(
+  period: string,
+  customFrom: string,
+  customTo: string,
+  today: string,
+): { from: string; to: string; label: string } {
+  if (period === 'week') {
+    const d = new Date(today + 'T12:00:00Z')
+    const day = d.getUTCDay()
+    const diff = day === 0 ? -6 : 1 - day
+    const mon = new Date(d)
+    mon.setUTCDate(d.getUTCDate() + diff)
+    const from = mon.toISOString().slice(0, 10)
+    return { from, to: today, label: `${from} → ${today}` }
+  }
+  if (period === 'month') {
+    const from = today.slice(0, 7) + '-01'
+    const [y, m] = today.split('-')
+    const monthName = new Date(`${y}-${m}-15`).toLocaleString('es', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
+    return { from, to: today, label: monthName }
+  }
+  if (period === 'custom' && customFrom && customTo) {
+    return {
+      from: customFrom,
+      to: customTo,
+      label: customFrom === customTo ? customFrom : `${customFrom} → ${customTo}`,
+    }
+  }
+  return { from: today, to: today, label: `hoy, ${today}` }
+}
 
 async function RecentTransactions() {
   const supabase = await createClient()
@@ -28,7 +66,16 @@ function StatsSkeleton() {
   )
 }
 
-export default function OverviewPage() {
+export default async function OverviewPage({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Panama' })
+  const { from, to, label } = getPeriodRange(
+    sp.period ?? 'today',
+    sp.from ?? '',
+    sp.to ?? '',
+    today,
+  )
+
   return (
     <div className="px-6 py-6 space-y-6">
       <div>
@@ -36,8 +83,12 @@ export default function OverviewPage() {
         <p className="text-gray-500 text-sm mt-0.5">InterFuerza × Devotio Rewards — tiempo real</p>
       </div>
 
+      <Suspense fallback={null}>
+        <PeriodFilter />
+      </Suspense>
+
       <Suspense fallback={<StatsSkeleton />}>
-        <StatsCards />
+        <StatsCards from={from} to={to} periodLabel={label} />
       </Suspense>
 
       <Suspense fallback={
